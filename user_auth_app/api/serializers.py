@@ -7,51 +7,67 @@ from rest_framework import serializers
 
 class RegistrationSerializer(serializers.ModelSerializer):
 
+    email = serializers.EmailField(required=True)
     repeated_password = serializers.CharField(write_only=True)
-    # maps 'username' field to 'fullname' for a better user-friendly representation
-    fullname = serializers.CharField(source='username')
-
+    username = serializers.CharField(write_only=True, allow_blank=False)
+    type = serializers.ChoiceField(choices=['customer', 'business'])
+    
     class Meta:
         model = User # specifies that this serializer is based on the User model
-        fields = ['fullname', 'email', 'password', 'repeated_password'] # defines the fields to be included
+        fields = ['id', 'username', 'email', 'password', 'repeated_password', 'type'] # defines the fields to be included
         extra_kwargs = {
             'password': {
                 'write_only': True # ensures the password is not included in response data
             }
         }
 
-    # check if passwords match
-    def save(self):
-        # extract validated data for password, repeated password, email, and username
-        fullname = self. validated_data['username']
-        pw = self.validated_data['password']
-        repeated_pw = self.validated_data['repeated_password']
-        email = self.validated_data['email']
-        username = self.validated_data['username']
+    def create(self, validated_data):
+        # extract password from validated data and remove it
+        pw = validated_data.pop('password')
+        # extract repeated password and remove it
+        repeated_pw = validated_data.pop('repeated_password')
+        # extract user type and remove it
+        user_type = validated_data.pop('type')
+        # extract username, apply title case, and remove it
+        username = validated_data.pop('username').title()
 
+        # check if passwords match
         if pw != repeated_pw:
-            raise serializers.ValidationError({'error: passwords dont match'})
+            # raise validation error if passwords don't match
+            raise serializers.ValidationError({'error': "Passwords don't match"})
         
-        # ensure that the email is not already registered
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({'error': "This email address already exists."})
+        # check if email is already registered
+        if User.objects.filter(email=validated_data['email']).exists():
+            # raise validation error if email exists
+            raise serializers.ValidationError({'error': "This email address is already taken"})
         
-        # split full name into first and last_name
-        name_parts = fullname.strip().split(maxsplit=1)
+        # check if username is already taken
+        if User.objects.filter(username=username).exists():
+            # raise validation error if username exists
+            raise serializers.ValidationError({'error': "This username is already taken"})
+        
+        # split username into parts for first and last name
+        name_parts = username.strip().split(maxsplit=1)
+        # set first name to first part
         first_name = name_parts[0]
+        # set last name to second part if it exists, else empty string
         last_name = name_parts[1] if len(name_parts) > 1 else ""
         
-        # create a new user instance with the provided email and username
-        account = User(email=self.validated_data['email'],
-                       username=self.validated_data['username'],
-                       first_name=first_name,
-                       last_name=last_name)
+        # create new user instance with provided email, username, and names
+        account = User(
+            email=validated_data['email'],
+            username=username,
+            first_name=first_name,
+            last_name=last_name
+        )
         
-        # hash the password before saving to ensure security
+        # hash the password for security
         account.set_password(pw)
-        account.save()  # save the user to the database
+        # save the user to the database
+        account.save()
         
-        return account  # return the newly created user instance
+        # return the newly created user instance
+        return account
     
 
 class CustomAuthTokenSerializer(serializers.Serializer):
