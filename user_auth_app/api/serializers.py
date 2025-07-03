@@ -5,6 +5,10 @@ from django.contrib.auth import authenticate
 # third party imports
 from rest_framework import serializers
 
+# local imports
+from user_auth_app.models import UserProfile
+
+
 class RegistrationSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(required=True)
