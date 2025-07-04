@@ -29,7 +29,7 @@ class UserProfileAPItestCaseHappy(APITestCase):
     
         response = self.client.post(url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
         
 class UserProfileAPItestCaseUnhappy(APITestCase):
@@ -45,7 +45,7 @@ class UserProfileAPItestCaseUnhappy(APITestCase):
     
         response = self.client.post(url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_registration_passwords_dont_match(self):
         url = reverse('registration')

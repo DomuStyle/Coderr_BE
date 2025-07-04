@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from .serializers import RegistrationSerializer, CustomAuthTokenSerializer
 
 class RegistrationView(APIView):
+
     permission_classes = [AllowAny] # gives permission to use this view at any time
 
     def post(self, request):
@@ -19,19 +20,19 @@ class RegistrationView(APIView):
         data = {}
 
         if serializer.is_valid():
-            saved_account = serializer.save()
-            token, created = Token.objects.get_or_create(user=saved_account) # get or create is used to make sure to get a token if it alrdy exists
+            user = serializer.save()
+            token, created = Token.objects.get_or_create(user=user) # get or create is used to make sure to get a token if it alrdy exists
             data = {
-            'token': token.key,
-            'fullname': saved_account.username,
-            'email': saved_account.email,
-            'user_id': saved_account.id
+                'token': token.key,
+                'username': user.username,
+                'email': user.email,
+                'user_id': user.id
             }
 
-        else:
-            data=serializer.errors
-
-        return Response(data)
+        # return success response with 201 status
+            return Response(data, status=status.HTTP_201_CREATED)
+        # return error response with 400 status if data is invalid
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class CustomLoginView(ObtainAuthToken):
@@ -56,7 +57,7 @@ class CustomLoginView(ObtainAuthToken):
             # constructs response data with user details and token key
             data = {
                 'token': token.key,
-                'fullname': user.username,
+                'username': user.username,
                 'email': user.email,
                 "user_id": user.id
             }

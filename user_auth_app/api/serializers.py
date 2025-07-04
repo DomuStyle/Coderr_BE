@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 
 # local imports
-from user_auth_app.models import UserProfile
+# from user_auth_app.models import UserProfile
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     repeated_password = serializers.CharField(write_only=True)
     username = serializers.CharField(write_only=True, allow_blank=False)
-    type = serializers.ChoiceField(choices=['customer', 'business'])
+    type = serializers.ChoiceField(choices=['customer', 'business'], write_only=True)
     
     class Meta:
         model = User # specifies that this serializer is based on the User model
@@ -22,56 +22,53 @@ class RegistrationSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {
                 'write_only': True # ensures the password is not included in response data
+            },
+            'id': {
+                'read_only': True
             }
         }
 
-    def create(self, validated_data):
-        # extract password from validated data and remove it
-        pw = validated_data.pop('password')
-        # extract repeated password and remove it
-        repeated_pw = validated_data.pop('repeated_password')
-        # extract user type and remove it
-        user_type = validated_data.pop('type')
-        # extract username, apply title case, and remove it
-        username = validated_data.pop('username').title()
-
+    def validate(self, data):
+        # extract password and repeated_password for validation
+        password = data.get('password')
+        repeated_password = data.get('repeated_password')
         # check if passwords match
-        if pw != repeated_pw:
+        if password != repeated_password:
             # raise validation error if passwords don't match
-            raise serializers.ValidationError({'error': "Passwords don't match"})
-        
+            raise serializers.ValidationError({'repeated_password': "Passwords must match"})
+        # return validated data
+        return data
+    
+    def validate_email(self, value):
+        # normalize email to lowercase to ensure consistency
+        value = value.lower()
         # check if email is already registered
-        if User.objects.filter(email=validated_data['email']).exists():
+        if User.objects.filter(email=value).exists():
             # raise validation error if email exists
-            raise serializers.ValidationError({'error': "This email address is already taken"})
-        
+            raise serializers.ValidationError("This email address is already taken")
+        # return validated email
+        return value
+    
+    def validate_username(self, value):
         # check if username is already taken
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(username__iexact=value).exists():
             # raise validation error if username exists
-            raise serializers.ValidationError({'error': "This username is already taken"})
+            raise serializers.ValidationError("This username is already taken")
+        # return normalized username
+        return value
+
+    def create(self, validated_data):
+        # extract and remove type from validated data
+        user_type = validated_data.pop('type')
+        # remove repeated_password as it's not needed for user creation
+        validated_data.pop('repeated_password')
+        # normalize email to lowercase
+        validated_data['email'] = validated_data['email'].lower()
+        # create user with validated data
+        user = User.objects.create_user(**validated_data)
         
-        # split username into parts for first and last name
-        name_parts = username.strip().split(maxsplit=1)
-        # set first name to first part
-        first_name = name_parts[0]
-        # set last name to second part if it exists, else empty string
-        last_name = name_parts[1] if len(name_parts) > 1 else ""
-        
-        # create new user instance with provided email, username, and names
-        account = User(
-            email=validated_data['email'],
-            username=username,
-            first_name=first_name,
-            last_name=last_name
-        )
-        
-        # hash the password for security
-        account.set_password(pw)
-        # save the user to the database
-        account.save()
-        
-        # return the newly created user instance
-        return account
+        # return the created user
+        return user
     
 
 class CustomAuthTokenSerializer(serializers.Serializer):
