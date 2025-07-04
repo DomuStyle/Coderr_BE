@@ -45,9 +45,8 @@ class CustomLoginView(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
         # initializes serializer with incoming request data and request context
         serializer = self.serializer_class(data=request.data, context={'request': request})
-        data = {}
 
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=False):
             # retrieves authenticated user from validated data
             user = serializer.validated_data['user']
             
@@ -61,8 +60,7 @@ class CustomLoginView(ObtainAuthToken):
                 'email': user.email,
                 "user_id": user.id
             }
-            return Response(data, status=status.HTTP_200_OK)  # explicitly set 200 for successful login
-        else:
-            data = serializer.errors
-            # returns response containing user authentication data
-            return Response(data, status=status.HTTP_400_BAD_REQUEST)  # return 400 for validation errors
+            # return success response with 200 status
+            return Response(data, status=status.HTTP_200_OK)
+        # return error response with 400 status for invalid data
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

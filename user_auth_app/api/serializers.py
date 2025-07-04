@@ -72,38 +72,45 @@ class RegistrationSerializer(serializers.ModelSerializer):
     
 
 class CustomAuthTokenSerializer(serializers.Serializer):
-    # defines an email field to be used for authentication
-    email = serializers.EmailField()
+    # define username field for authentication input
+    username = serializers.CharField(required=True, allow_blank=False)
     
-    # defines a password field with styling to hide input characters
+    # define password field, write-only with hidden input for security
     password = serializers.CharField(
         style={'input_type': 'password'},
-        trim_whitespace=False  # ensures that spaces in the password are not automatically removed
+        trim_whitespace=False,  # preserve whitespace in password
+        write_only=True  # ensure password is not included in response
     )
 
     def validate(self, attrs):
-        # retrieves email and password from the validated attributes
-        email = attrs.get('email')
+        # extract username from validated attributes
+        username = attrs.get('username')
+        # extract password from validated attributes
         password = attrs.get('password')
 
-        if email and password:
-            try:
-                # tries to find a user with the given email address
-                user_obj = User.objects.get(email=email)
-            except User.DoesNotExist:
-                # raises a validation error if no user with the provided email exists
-                raise serializers.ValidationError("Invalid email or password.")
-
-            # attempts to authenticate the user using the retrieved username and password
-            user = authenticate(username=user_obj.username, password=password)
-
+        # check if both username and password are provided
+        if username and password:
+            # authenticate user with provided username and password
+            user = authenticate(
+                request=self.context.get('request'),
+                username=username,
+                password=password
+            )
+            # check if authentication failed
             if not user:
-                # raises a validation error if authentication fails
-                raise serializers.ValidationError("Invalid email or password.")
+                # raise validation error for invalid credentials
+                raise serializers.ValidationError(
+                    {'non_field_errors': 'Invalid username or password.'},
+                    code='authentication'
+                )
         else:
-            # raises a validation error if either email or password is missing
-            raise serializers.ValidationError("Both email and password are required.")
+            # raise validation error if either field is missing
+            raise serializers.ValidationError(
+                {'non_field_errors': 'Both username and password are required.'},
+                code='required'
+            )
 
-        # adds the authenticated user to the attributes and returns them
+        # store authenticated user in attributes for view access
         attrs['user'] = user
+        # return validated attributes
         return attrs
