@@ -12,8 +12,42 @@ from user_auth_app.models import UserProfile
 
 
 class UserLoginAPItestCaseHappy(APITestCase):
-    pass
+     
+    def setUp(self):
+
+        self.user = User.objects.create_user(
+                username='exampleUsername',
+                password='examplePassword'
+            )
+        
+    def test_login_successful(self):   
+
+        url = reverse('login')
+        data = {
+            "username": "exampleUsername",
+            "password": "examplePassword"
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class UserLoginAPItestCaseUnhappy(APITestCase):
-    pass
+    
+    def setUp(self):
+
+        self.user = User.objects.create_user(
+                username='exampleUsername',
+                password='examplePassword'
+            )
+        
+    def test_login_not_successful(self):   
+
+        url = reverse('login')
+        data = {
+            "username": "exampleUsername",
+            "password": "differentexamplePassword"
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
