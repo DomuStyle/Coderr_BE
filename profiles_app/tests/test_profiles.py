@@ -51,7 +51,7 @@ class ProfileTestsHappy(APITestCase):
             'working_hours': '9-17',
             'type': 'business',
             'email': 'test@business.de',
-            'created_at': '2023-01-01T12:00:00Z'
+            'created_at': self.profile.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')  # Match serializer format
         }
         self.assertEqual(response.data, expected_data)
 
@@ -69,7 +69,25 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.data['first_name'], 'Updated')
         self.assertEqual(response.data['tel'], '987654321')
 
-class ProfileTestsHappy(APITestCase):
+    def test_get_profile_empty_fields(self):
+    # test profile with empty fields
+        empty_profile = Profile.objects.create(
+            user=User.objects.create_user(username='emptyuser', password='pass'),
+            first_name='',
+            last_name='',
+            location='',
+            tel='',
+            description='',
+            working_hours='',
+            type='customer'
+        )
+        url = reverse('profile-detail', kwargs={'pk': empty_profile.user.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['first_name'], '')
+        self.assertEqual(response.data['location'], '')
+
+class ProfileTestsUnappy(APITestCase):
     
     def setUp(self):
         # set up test client and user

@@ -6,7 +6,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     # include read-only fields from User model
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
-
+    created_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
+    
     class Meta:
         model = Profile
         fields = [
