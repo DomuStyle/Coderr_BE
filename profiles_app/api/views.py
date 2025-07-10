@@ -1,9 +1,10 @@
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from profiles_app.models import Profile
-from .serializers import ProfileSerializer
+from .serializers import ProfileSerializer, BusinessProfileSerializer
 
 
 class ProfileDetailView(APIView):
@@ -35,17 +36,23 @@ class ProfileDetailView(APIView):
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
 
-class BusinessProfileListView(APIView):
+# class BusinessProfileListView(APIView):
+#     # require authentication
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         # fetch all business profiles
+#         profiles = Profile.objects.filter(type='business')
+#         serializer = ProfileSerializer(profiles, many=True)
+#         # exclude email and created_at from response
+#         data = [
+#             {key: item[key] for key in item if key not in ['email', 'created_at']}
+#             for item in serializer.data
+#         ]
+#         return Response(data, status=status.HTTP_200_OK)
+
+class BusinessProfileListView(ListAPIView):
     # require authentication
     permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        # fetch all business profiles
-        profiles = Profile.objects.filter(type='business')
-        serializer = ProfileSerializer(profiles, many=True)
-        # exclude email and created_at from response
-        data = [
-            {key: item[key] for key in item if key not in ['email', 'created_at']}
-            for item in serializer.data
-        ]
-        return Response(data, status=status.HTTP_200_OK)
+    serializer_class = BusinessProfileSerializer
+    queryset = Profile.objects.filter(type='business')

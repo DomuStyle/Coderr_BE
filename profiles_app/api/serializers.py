@@ -26,4 +26,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         # handle file field to return filename or null
         representation['file'] = instance.file.name if instance.file else None
         return representation
+    
+
+class BusinessProfileSerializer(ProfileSerializer):
+    class Meta(ProfileSerializer.Meta):
+        fields = [
+            'user', 'username', 'first_name', 'last_name', 'file',
+            'location', 'tel', 'description', 'working_hours', 'type'
+        ]
 
