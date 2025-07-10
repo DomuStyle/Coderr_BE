@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from profiles_app.models import Profile
-from .serializers import ProfileSerializer, BusinessProfileSerializer
+from .serializers import ProfileSerializer, BusinessProfileSerializer, CustomerProfileSerializer
 
 
 class ProfileDetailView(APIView):
@@ -51,8 +51,16 @@ class ProfileDetailView(APIView):
 #         ]
 #         return Response(data, status=status.HTTP_200_OK)
 
+
 class BusinessProfileListView(ListAPIView):
     # require authentication
     permission_classes = [IsAuthenticated]
     serializer_class = BusinessProfileSerializer
     queryset = Profile.objects.filter(type='business')
+
+
+class CustomerProfileListView(ListAPIView):
+    # require authentication
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerProfileSerializer
+    queryset = Profile.objects.filter(type='customer')

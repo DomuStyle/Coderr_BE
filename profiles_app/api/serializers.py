@@ -35,3 +35,11 @@ class BusinessProfileSerializer(ProfileSerializer):
             'location', 'tel', 'description', 'working_hours', 'type'
         ]
 
+
+class CustomerProfileSerializer(ProfileSerializer):
+    class Meta(ProfileSerializer.Meta):
+        fields = [
+            'user', 'username', 'first_name', 'last_name', 'file',
+            'location', 'tel', 'description', 'working_hours', 'type'
+        ]
+

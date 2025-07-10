@@ -196,6 +196,63 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
 
+    def test_get_customer_profiles_authenticated(self):
+        # test retrieving list of customer profiles
+        url = reverse('customer-profiles-list')
+        response = self.client.get(url)
+        
+        # assert response status code is 200
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # assert response contains only customer profiles
+        expected_data = [
+            {
+                'user': self.customer_user.id,
+                'username': 'customer',
+                'first_name': 'Jane',
+                'last_name': 'Doe',
+                'file': None,
+                'location': 'Hamburg',
+                'tel': '555555555',
+                'description': '',
+                'working_hours': '',
+                'type': 'customer'
+            }
+        ]
+        self.assertEqual(response.data, expected_data)
+        self.assertEqual(len(response.data), 1)
+
+    def test_get_customer_profiles_empty_fields(self):
+        # test customer profile with empty fields
+        empty_customer_user = User.objects.create_user(
+            username='emptycustomer',
+            email='empty@customer.de',
+            password='pass'
+        )
+        empty_customer_profile = Profile.objects.create(
+            user=empty_customer_user,
+            first_name='',
+            last_name='',
+            location='',
+            tel='',
+            description='',
+            working_hours='',
+            type='customer'
+        )
+        url = reverse('customer-profiles-list')
+        response = self.client.get(url)
+        for profile in response.data:
+            if profile['user'] == empty_customer_user.id:
+                self.assertEqual(profile['first_name'], '')
+                self.assertEqual(profile['location'], '')
+
+    def test_get_customer_profiles_empty_list(self):
+        # test when no customer profiles exist
+        Profile.objects.filter(type='customer').delete()
+        url = reverse('customer-profiles-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
 class ProfileTestsUnappy(APITestCase):
     
     def setUp(self):
@@ -243,4 +300,11 @@ class ProfileTestsUnappy(APITestCase):
         response = self.client.get(url)
         
         # assert response status code is 401
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_customer_profiles_unauthenticated(self):
+        # test retrieving customer profiles when not authenticated
+        self.client.force_authenticate(user=None)
+        url = reverse('customer-profiles-list')
+        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
