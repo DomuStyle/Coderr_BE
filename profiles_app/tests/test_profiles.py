@@ -28,6 +28,41 @@ class ProfileTestsHappy(APITestCase):
             type='business',
             created_at=datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
         )
+        
+        # create another business profile
+        self.user2 = User.objects.create_user(
+            username='anotherbusiness',
+            email='another@business.de',
+            password='testpass456'
+        )
+        self.profile2 = Profile.objects.create(
+            user=self.user2,
+            first_name='Anna',
+            last_name='Schmidt',
+            location='Munich',
+            tel='987654321',
+            description='Freelancer',
+            working_hours='10-18',
+            type='business'
+        )
+
+         # create a customer profile to ensure filtering
+        self.customer_user = User.objects.create_user(
+            username='customer',
+            email='customer@test.de',
+            password='testpass789'
+        )
+        self.customer_profile = Profile.objects.create(
+            user=self.customer_user,
+            first_name='Jane',
+            last_name='Doe',
+            location='Hamburg',
+            tel='555555555',
+            description='',
+            working_hours='',
+            type='customer'
+        )
+
         # authenticate the client
         self.client.force_authenticate(user=self.user)
 
@@ -87,6 +122,80 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.data['first_name'], '')
         self.assertEqual(response.data['location'], '')
 
+    def test_get_business_profiles_authenticated(self):
+        # test retrieving list of business profiles for authenticated user
+        url = reverse('business-profiles-list')
+        response = self.client.get(url)
+        
+        # assert response status code is 200
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # assert response contains only business profiles
+        expected_data = [
+            {
+                'user': self.user.id,
+                'username': 'testuser',
+                'first_name': 'Max',
+                'last_name': 'Mustermann',
+                'file': None,
+                'location': 'Berlin',
+                'tel': '123456789',
+                'description': 'Business description',
+                'working_hours': '9-17',
+                'type': 'business'
+            },
+            {
+                'user': self.user2.id,
+                'username': 'anotherbusiness',
+                'first_name': 'Anna',
+                'last_name': 'Schmidt',
+                'file': None,
+                'location': 'Munich',
+                'tel': '987654321',
+                'description': 'Freelancer',
+                'working_hours': '10-18',
+                'type': 'business'
+            }
+        ]
+        self.assertEqual(response.data, expected_data)
+        # assert no customer profiles are included
+        self.assertEqual(len(response.data), 2)
+
+    def test_get_business_profiles_empty_fields(self):
+        # test business profile with empty fields
+        empty_business_user = User.objects.create_user(
+            username='emptybusiness',
+            email='empty@business.de',
+            password='pass'
+        )
+        empty_business_profile = Profile.objects.create(
+            user=empty_business_user,
+            first_name='',
+            last_name='',
+            location='',
+            tel='',
+            description='',
+            working_hours='',
+            type='business'
+        )
+        url = reverse('business-profiles-list')
+        response = self.client.get(url)
+        # assert empty fields return ''
+        for profile in response.data:
+            if profile['user'] == empty_business_user.id:
+                self.assertEqual(profile['first_name'], '')
+                self.assertEqual(profile['location'], '')
+                self.assertEqual(profile['description'], '')
+
+    def test_get_business_profiles_empty_list(self):
+        # test when no business profiles exist
+        Profile.objects.filter(type='business').delete()  # remove business profiles
+        url = reverse('business-profiles-list')
+        response = self.client.get(url)
+        
+        # assert response status code is 200 and empty list
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
 class ProfileTestsUnappy(APITestCase):
     
     def setUp(self):
@@ -126,3 +235,12 @@ class ProfileTestsUnappy(APITestCase):
         url = reverse('profile-detail', kwargs={'pk': other_user.id})
         response = self.client.patch(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_business_profiles_unauthenticated(self):
+        # test retrieving business profiles when not authenticated
+        self.client.force_authenticate(user=None)  # remove authentication
+        url = reverse('business-profiles-list')
+        response = self.client.get(url)
+        
+        # assert response status code is 401
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
