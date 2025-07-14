@@ -140,6 +140,83 @@ class OrderTestsHappy(APITestCase):
         # string comparison for response (allow equality if no delay)
         self.assertGreaterEqual(response.data['updated_at'], response.data['created_at'])
 
+    # delete order tests
+
+    def test_delete_order_success(self):
+        # test deleting order as staff
+        self.business_user.is_staff = True  # Make business user staff for this test
+        self.business_user.save()
+        self.client.force_authenticate(user=self.business_user)
+        url = reverse('order-detail', kwargs={'pk': self.order.id})
+        response = self.client.delete(url)
+        # assert response status code is 204
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # assert order is deleted
+        self.assertFalse(Order.objects.filter(id=self.order.id).exists())
+
+    # count order tests
+
+    # def test_order_count(self):
+    #     # test retrieving in_progress order count
+    #     Order.objects.create(
+    #         customer_user=self.customer_user,
+    #         business_user=self.business_user,
+    #         title='Test',
+    #         # Dummy value for required field
+    #         revisions=1,  
+    #         delivery_time_in_days=1,  
+    #         price=10.00, 
+    #         features=[], 
+    #         offer_type='basic', 
+    #         status='in_progress'
+    #     )
+    #     Order.objects.create(
+    #         customer_user=self.customer_user,
+    #         business_user=self.business_user,
+    #         title='Test',
+    #         # Dummy value for required field
+    #         revisions=1, 
+    #         delivery_time_in_days=1, 
+    #         price=10.00, 
+    #         features=[], 
+    #         offer_type='basic', 
+    #         status='completed'
+    #     )
+    #     url = reverse('order-count', kwargs={'business_user_id': self.business_user.id})
+    #     response = self.client.get(url)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.data['order_count'], 1)
+
+    def test_order_count(self):
+        # test retrieving in_progress order count
+        Order.objects.create(
+            customer_user=self.customer_user,
+            business_user=self.business_user,
+            title='Test',
+            revisions=1,
+            delivery_time_in_days=1,
+            price=10.00,
+            features=[],
+            offer_type='basic',
+            status='in_progress'
+        )
+        Order.objects.create(
+            customer_user=self.customer_user,
+            business_user=self.business_user,
+            title='Test',
+            revisions=1,
+            delivery_time_in_days=1,
+            price=10.00,
+            features=[],
+            offer_type='basic',
+            status='completed'
+        )
+        url = reverse('order-count', kwargs={'business_user_id': self.business_user.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['order_count'], 2)  # 1 from setUp + 1 in_progress from test
+
+
 class OrderTestsUnhappy(APITestCase):
     
     def setUp(self):
@@ -243,6 +320,41 @@ class OrderTestsUnhappy(APITestCase):
         url = reverse('order-detail', kwargs={'pk': 999})
         data = {'status': 'completed'}
         response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # delete order tests
+
+    def test_delete_order_non_staff(self):
+        # test deleting as non-staff
+        url = reverse('order-detail', kwargs={'pk': self.order.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_order_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('order-detail', kwargs={'pk': self.order.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_order_not_found(self):
+        self.client.force_authenticate(user=self.business_user)
+        self.business_user.is_staff = True  # Make staff for this test
+        self.business_user.save()
+        url = reverse('order-detail', kwargs={'pk': 999})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # count order tests
+
+    def test_completed_order_count_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('completed-order-count', kwargs={'business_user_id': self.business_user.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_completed_order_count_not_found(self):
+        url = reverse('completed-order-count', kwargs={'business_user_id': 999})
+        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     

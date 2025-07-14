@@ -1,11 +1,13 @@
-from rest_framework.generics import ListAPIView, UpdateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import ListAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from orders_app.models import Order
 from profiles_app.models import Profile
 from .serializers import OrderSerializer, OrderCreateSerializer, OrderUpdateSerializer
 from django.db.models import Q
+from django.contrib.auth.models import User
 
 
 class OrderListView(ListAPIView):
@@ -37,11 +39,17 @@ class OrderListView(ListAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class OrderSpecificView(UpdateAPIView):
+class OrderSpecificView(DestroyAPIView, UpdateAPIView):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
     queryset = Order.objects.all()
     lookup_field = 'pk'
+
+    def get_permissions(self):
+        # Use IsAdminUser for DELETE
+        if self.request.method == 'DELETE':
+            return [IsAdminUser()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.request.method == 'PATCH':
@@ -55,5 +63,28 @@ class OrderSpecificView(UpdateAPIView):
         serializer = self.get_serializer(order, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        # Return full order using OrderSerializer
         return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        # No additional checks needed, IsAdminUser handles permission
+        return self.destroy(request, *args, **kwargs)
+    
+
+class OrderCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_user_id):
+        if not User.objects.filter(id=business_user_id).exists():
+            return Response({'error': 'Business user not found'}, status=status.HTTP_404_NOT_FOUND)
+        count = Order.objects.filter(business_user_id=business_user_id, status='in_progress').count()
+        return Response({'order_count': count}, status=status.HTTP_200_OK)
+    
+
+class CompletedOrderCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_user_id):
+        if not User.objects.filter(id=business_user_id).exists():
+            return Response({'error': 'Business user not found'}, status=status.HTTP_404_NOT_FOUND)
+        count = Order.objects.filter(business_user_id=business_user_id, status='completed').count()
+        return Response({'completed_order_count': count}, status=status.HTTP_200_OK)
