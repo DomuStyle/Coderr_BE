@@ -110,7 +110,7 @@ class OrderTestsHappy(APITestCase):
         self.assertEqual(response.data['title'], 'Logo Design')
         self.assertEqual(response.data['status'], 'in_progress')
 
-    # order patch tests
+    # update order tests
 
     def test_update_order_status_success(self):
         # test updating order status as business user
@@ -184,14 +184,6 @@ class OrderTestsUnhappy(APITestCase):
 
     # order create tests
 
-    # def test_create_order_non_customer(self):
-    #     # test creating order as non-customer
-    #     Profile.objects.filter(user=self.user).update(type='business')
-    #     url = reverse('order-list')
-    #     data = {'offer_detail_id': 1}
-    #     response = self.client.post(url, data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
     def test_create_order_non_customer(self):
         # test creating order as non-customer
         Profile.objects.filter(user=self.customer_user).update(type='business')
@@ -199,15 +191,6 @@ class OrderTestsUnhappy(APITestCase):
         data = {'offer_detail_id': 1}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_update_order_non_business(self):
-        # test updating status as non-business (customer)
-        self.client.force_authenticate(user=self.customer_user)
-        url = reverse('order-detail', kwargs={'pk': self.order.id})
-        data = {'status': 'completed'}
-        response = self.client.patch(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data['error'], 'Permission denied')
 
     def test_create_order_invalid_offer_detail(self):
         # test creating order with invalid offer_detail_id
@@ -225,8 +208,17 @@ class OrderTestsUnhappy(APITestCase):
         response = self.client.post(url, data, format='json')
         # assert response status code is 401
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        # assert error message
-        # self.assertEqual(response.data['error'], 'Authentication required')
+
+    # update order tests
+
+    def test_update_order_non_business(self):
+        # test updating status as non-business (customer)
+        self.client.force_authenticate(user=self.customer_user)
+        url = reverse('order-detail', kwargs={'pk': self.order.id})
+        data = {'status': 'completed'}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['error'], 'Permission denied')
 
     def test_update_order_invalid_status(self):
         # test updating with invalid status
@@ -236,3 +228,21 @@ class OrderTestsUnhappy(APITestCase):
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('"invalid" is not a valid choice.', str(response.data['status']))
+
+    def test_update_order_unauthenticated(self):
+        # test updating status when not authenticated
+        self.client.force_authenticate(user=None)
+        url = reverse('order-detail', kwargs={'pk': self.order.id})
+        data = {'status': 'completed'}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_order_not_found(self):
+        # test updating non-existent order
+        self.client.force_authenticate(user=self.business_user)
+        url = reverse('order-detail', kwargs={'pk': 999})
+        data = {'status': 'completed'}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    
