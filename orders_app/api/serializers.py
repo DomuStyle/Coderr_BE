@@ -43,3 +43,15 @@ class OrderCreateSerializer(serializers.Serializer):
             offer_type=offer_detail.offer_type
         )
         return order
+    
+
+class OrderUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']
+
+    def validate_status(self, value):
+        # validate status value
+        if value not in [choice[0] for choice in Order.STATUS_CHOICES]:
+            raise serializers.ValidationError('Invalid status.')
+        return value
