@@ -156,6 +156,52 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['title'], 'Website Design')
 
+    # Create offer Tests
+
+    def test_create_offer_success(self):
+        # test creating an offer as business user with 3 details
+        url = reverse('offer-list')
+        data = {
+            'title': 'Grafikdesign-Paket',
+            'image': None,
+            'description': 'Ein umfassendes Grafikdesign-Paket für Unternehmen.',
+            'details': [
+                {
+                    'title': 'Basic Design',
+                    'revisions': 2,
+                    'delivery_time_in_days': 5,
+                    'price': '100.00',
+                    'features': ['Logo Design', 'Visitenkarte'],
+                    'offer_type': 'basic'
+                },
+                {
+                    'title': 'Standard Design',
+                    'revisions': 5,
+                    'delivery_time_in_days': 7,
+                    'price': '200.00',
+                    'features': ['Logo Design', 'Visitenkarte', 'Briefpapier'],
+                    'offer_type': 'standard'
+                },
+                {
+                    'title': 'Premium Design',
+                    'revisions': 10,
+                    'delivery_time_in_days': 10,
+                    'price': '500.00',
+                    'features': ['Logo Design', 'Visitenkarte', 'Briefpapier', 'Flyer'],
+                    'offer_type': 'premium'
+                }
+            ]
+        }
+        response = self.client.post(url, data, format='json')
+        # assert response status code is 201
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # assert response structure
+        self.assertEqual(response.data['title'], 'Grafikdesign-Paket')
+        self.assertEqual(len(response.data['details']), 3)
+        self.assertEqual(response.data['details'][0]['offer_type'], 'basic')
+        self.assertEqual(response.data['details'][1]['offer_type'], 'standard')
+        self.assertEqual(response.data['details'][2]['offer_type'], 'premium')
+
 
 class OfferTestsUnappy(APITestCase):
 

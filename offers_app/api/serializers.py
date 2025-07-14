@@ -54,3 +54,34 @@ class OfferListSerializer(serializers.ModelSerializer):
             'last_name': profile.last_name or '',
             'username': obj.user.username
         }
+    
+
+class OfferCreateSerializer(serializers.ModelSerializer):
+    # nested details for creation
+    details = FullOfferDetailSerializer(many=True)
+    # image field
+    image = serializers.ImageField(allow_null=True, required=False)
+
+    class Meta:
+        model = Offer
+        fields = ['id', 'title', 'image', 'description', 'details']
+
+    def validate_details(self, value):
+        # ensure exactly 3 details are provided
+        if len(value) != 3:
+            raise serializers.ValidationError('Exactly 3 details are required.')
+        # ensure unique offer_type
+        offer_types = [detail['offer_type'] for detail in value]
+        if len(set(offer_types)) != len(offer_types):
+            raise serializers.ValidationError('Offer types must be unique.')
+        return value
+
+    def create(self, validated_data):
+        # extract details data
+        details_data = validated_data.pop('details')
+        # create offer
+        offer = Offer.objects.create(user=self.context['request'].user, **validated_data)
+        # create details
+        for detail_data in details_data:
+            OfferDetail.objects.create(offer=offer, **detail_data)
+        return offer
