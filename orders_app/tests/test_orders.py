@@ -113,6 +113,17 @@ class OrderTestsHappy(APITestCase):
 
 class OrderTestsUnhappy(APITestCase):
     
+    def setUp(self):
+        # minimal setUp for unhappy tests
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='customer',
+            email='customer@example.com',
+            password='testpass123'
+        )
+        Profile.objects.create(user=self.user, type='customer')  # default as customer
+        self.client.force_authenticate(user=self.user)  # authenticate as customer for POST tests
+
     def test_get_orders_unauthenticated(self):
         # test listing orders when not authenticated
         self.client.force_authenticate(user=None)
@@ -121,3 +132,31 @@ class OrderTestsUnhappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     # order create tests
+
+    def test_create_order_non_customer(self):
+        # test creating order as non-customer
+        Profile.objects.filter(user=self.user).update(type='business')
+        url = reverse('order-list')
+        data = {'offer_detail_id': 1}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_order_invalid_offer_detail(self):
+        # test creating order with invalid offer_detail_id
+        url = reverse('order-list')
+        data = {'offer_detail_id': 999}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(str(response.data['offer_detail_id'][0]), 'Offer detail not found.')
+
+    def test_create_order_unauthenticated(self):
+        # test creating order when not authenticated
+        self.client.force_authenticate(user=None)
+        url = reverse('order-list')
+        data = {'offer_detail_id': 1}  # Dummy ID, as validation won't be reached
+        response = self.client.post(url, data, format='json')
+        # assert response status code is 401
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # assert error message
+        # self.assertEqual(response.data['error'], 'Authentication required')
+
