@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q, Min
@@ -75,7 +75,7 @@ class OfferDetailView(RetrieveAPIView):
     lookup_field = 'id'
 
 
-class OfferSpecificView(UpdateAPIView, RetrieveAPIView):
+class OfferSpecificView(DestroyAPIView, UpdateAPIView, RetrieveAPIView):
     # specify serializer for specific offer
     serializer_class = OfferListSerializer
     # require authentication per endpoint doc
@@ -95,3 +95,9 @@ class OfferSpecificView(UpdateAPIView, RetrieveAPIView):
         if offer.user != request.user:
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         return self.partial_update(request, *args, **kwargs)
+    
+    def delete(self, request, *args, **kwargs):
+        offer = self.get_object()
+        if offer.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return self.destroy(request, *args, **kwargs)

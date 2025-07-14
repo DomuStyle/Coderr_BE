@@ -234,6 +234,14 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(response.data['description'], 'Professionelles Website-Design...')
         self.assertEqual(response.data['details'][1]['title'], 'Standard')
 
+    # delete offer tests
+
+    def test_delete_offer_success(self):
+        url = reverse('offer-detail', kwargs={'pk': self.offer.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Offer.objects.filter(id=self.offer.id).exists())
+
 
 class OfferTestsUnappy(APITestCase):
 
