@@ -25,4 +25,6 @@ urlpatterns = [
     path('api/', include('profiles_app.api.urls')),
     # offers-app path's
     path('api/', include('offers_app.api.urls')),
+    # orders_app path's
+    path('api/', include('orders_app.api.urls')),
 ]
