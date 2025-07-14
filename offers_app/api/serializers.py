@@ -85,3 +85,34 @@ class OfferCreateSerializer(serializers.ModelSerializer):
         for detail_data in details_data:
             OfferDetail.objects.create(offer=offer, **detail_data)
         return offer
+   
+    
+class OfferUpdateSerializer(OfferCreateSerializer):
+    # allow partial updates for details
+    details = FullOfferDetailSerializer(many=True, required=False, partial=True)
+
+    class Meta(OfferCreateSerializer.Meta):
+        fields = ['title', 'image', 'description', 'details']
+
+    def validate_details(self, value):
+        # optional validation for partial updates, ensure offer_type if provided
+        for detail in value:
+            if 'offer_type' not in detail:
+                raise serializers.ValidationError('offer_type is required for detail updates.')
+        return value
+
+    def update(self, instance, validated_data):
+        # update offer fields
+        details_data = validated_data.pop('details', [])
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        # update details by offer_type
+        for detail_data in details_data:
+            offer_type = detail_data.pop('offer_type')
+            detail = OfferDetail.objects.filter(offer=instance, offer_type=offer_type).first()
+            if detail:
+                for attr, value in detail_data.items():
+                    setattr(detail, attr, value)
+                detail.save()
+        return instance

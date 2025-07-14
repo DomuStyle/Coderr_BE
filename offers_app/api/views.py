@@ -1,9 +1,9 @@
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q, Min
 from offers_app.models import Offer, OfferDetail, Profile
-from .serializers import OfferListSerializer, FullOfferDetailSerializer, OfferCreateSerializer
+from .serializers import OfferListSerializer, FullOfferDetailSerializer, OfferCreateSerializer, OfferUpdateSerializer
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 
@@ -73,3 +73,25 @@ class OfferDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]  # Align with GET /api/offers/{id}/
     queryset = OfferDetail.objects.all()
     lookup_field = 'id'
+
+
+class OfferSpecificView(UpdateAPIView, RetrieveAPIView):
+    # specify serializer for specific offer
+    serializer_class = OfferListSerializer
+    # require authentication per endpoint doc
+    permission_classes = [IsAuthenticated]
+    queryset = Offer.objects.all()
+    lookup_field = 'pk'
+
+    def get_serializer_class(self):
+        # use OfferUpdateSerializer for PATCH
+        if self.request.method == 'PATCH':
+            return OfferUpdateSerializer
+        return super().get_serializer_class()
+
+    def patch(self, request, *args, **kwargs):
+        # ensure user is owner
+        offer = self.get_object()
+        if offer.user != request.user:
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return self.partial_update(request, *args, **kwargs)

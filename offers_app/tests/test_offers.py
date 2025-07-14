@@ -156,7 +156,7 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['title'], 'Website Design')
 
-    # Create offer Tests
+    # create offer tests
 
     def test_create_offer_success(self):
         # test creating an offer as business user with 3 details
@@ -202,6 +202,38 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(response.data['details'][1]['offer_type'], 'standard')
         self.assertEqual(response.data['details'][2]['offer_type'], 'premium')
 
+    # patch offer tests
+
+    def test_update_offer_success(self):
+    # test updating an offer by owner
+        url = reverse('offer-detail', kwargs={'pk': self.offer.id})
+        data = {
+            'title': 'Updated Website Design',
+            'details': [
+                {
+                    'title': 'Updated Basic',
+                    'revisions': 3,
+                    'delivery_time_in_days': 6,
+                    'price': '120.00',
+                    'features': ['Updated Basic Design'],
+                    'offer_type': 'basic'
+                }
+            ]
+        }
+        response = self.client.patch(url, data, format='json')
+        # assert response status code is 200
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # assert updated fields
+        self.assertEqual(response.data['title'], 'Updated Website Design')
+        self.assertEqual(response.data['details'][0]['title'], 'Updated Basic')
+        self.assertEqual(response.data['details'][0]['revisions'], 3)
+        self.assertEqual(response.data['details'][0]['delivery_time_in_days'], 6)
+        self.assertEqual(response.data['details'][0]['price'], '120.00')
+        self.assertEqual(response.data['details'][0]['features'], ['Updated Basic Design'])
+        # assert unchanged fields
+        self.assertEqual(response.data['description'], 'Professionelles Website-Design...')
+        self.assertEqual(response.data['details'][1]['title'], 'Standard')
+
 
 class OfferTestsUnappy(APITestCase):
 
@@ -237,6 +269,15 @@ class OfferTestsUnappy(APITestCase):
         # authenticate client (optional, as endpoint doesn't require auth)
         self.client.force_authenticate(user=self.user)
 
+        # create another user for non-owner tests
+        self.user2 = User.objects.create_user(
+            username='jane',
+            email='jane@business.de',
+            password='testpass456'
+        )
+        Profile.objects.create(user=self.user2, type='business')  # business type to avoid unrelated errors
+
+
     def test_get_offers_invalid_params(self):
         # test invalid query parameters
         url = reverse('offer-list') + '?min_price=invalid'
@@ -245,3 +286,100 @@ class OfferTestsUnappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # assert error message
         self.assertEqual(response.data, {'min_price': 'Invalid value'})
+
+    # create offer tests
+
+    def test_create_offer_non_business(self):
+        # test creating offer as non-business user
+        Profile.objects.filter(user=self.user).update(type='customer')  # change to non-business
+        url = reverse('offer-list')
+        data = {
+            'title': 'Grafikdesign-Paket',
+            'description': 'Ein umfassendes Grafikdesign-Paket für Unternehmen.',
+            'details': [
+                {
+                    'title': 'Basic Design',
+                    'revisions': 2,
+                    'delivery_time_in_days': 5,
+                    'price': '100.00',
+                    'features': ['Logo Design', 'Visitenkarte'],
+                    'offer_type': 'basic'
+                },
+                {
+                    'title': 'Standard Design',
+                    'revisions': 5,
+                    'delivery_time_in_days': 7,
+                    'price': '200.00',
+                    'features': ['Logo Design', 'Visitenkarte', 'Briefpapier'],
+                    'offer_type': 'standard'
+                },
+                {
+                    'title': 'Premium Design',
+                    'revisions': 10,
+                    'delivery_time_in_days': 10,
+                    'price': '500.00',
+                    'features': ['Logo Design', 'Visitenkarte', 'Briefpapier', 'Flyer'],
+                    'offer_type': 'premium'
+                }
+            ]
+        }
+        response = self.client.post(url, data, format='json')
+        # assert response status code is 403
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # assert error message
+        self.assertEqual(response.data['error'], 'Only business users can create offers')
+
+    def test_create_offer_insufficient_details(self):
+        # test creating offer with fewer than 3 details
+        url = reverse('offer-list')
+        data = {
+            'title': 'Grafikdesign-Paket',
+            'description': 'Ein umfassendes Grafikdesign-Paket für Unternehmen.',
+            'details': [
+                {
+                    'title': 'Basic Design',
+                    'revisions': 2,
+                    'delivery_time_in_days': 5,
+                    'price': '100.00',
+                    'features': ['Logo Design', 'Visitenkarte'],
+                    'offer_type': 'basic'
+                }
+            ]
+        }
+        response = self.client.post(url, data, format='json')
+        # assert response status code is 400
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # assert error message
+        self.assertIn('Exactly 3 details are required.', str(response.data['details']))
+
+    def test_create_offer_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('offer-list')
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # patch offer tests
+
+    def test_update_offer_non_owner(self):
+        # test updating offer as non-owner
+        other_offer = Offer.objects.create(
+            user=self.user2,
+            title='Other Offer',
+            description='Other...',
+            created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
+            updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
+        )
+        url = reverse('offer-detail', kwargs={'pk': other_offer.id})
+        data = {'title': 'Updated'}
+        response = self.client.patch(url, data, format='json')
+        # assert response status code is 403
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['error'], 'Permission denied')
+
+    def test_update_offer_not_found(self):
+        # test updating non-existent offer
+        url = reverse('offer-detail', kwargs={'pk': 999})
+        data = {'title': 'Updated'}
+        response = self.client.patch(url, data, format='json')
+        # assert response status code is 404
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
