@@ -85,6 +85,26 @@ class ReviewTestsHappy(APITestCase):
         ]
         self.assertEqual(response.data, expected_data)
 
+    def test_get_reviews_filtered_and_ordered(self):
+        # test listing reviews with filter and ordering
+        url = reverse('review-list') + f'?business_user_id={self.business_user1.id}&ordering=rating'
+        response = self.client.get(url)
+        # assert response status code is 200
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # assert response structure (filtered to business_user1, ordered by rating ascending)
+        expected_data = [
+            {
+                'id': self.review1.id,
+                'business_user': self.business_user1.id,
+                'reviewer': self.reviewer.id,
+                'rating': 4,
+                'description': 'Sehr professioneller Service.',
+                'created_at': self.review1.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'updated_at': self.review1.updated_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+            }
+        ]
+        self.assertEqual(response.data, expected_data)
+
     # create review tests
 
     def test_create_review_success(self):
@@ -112,28 +132,32 @@ class ReviewTestsHappy(APITestCase):
         self.assertEqual(response.data['description'], 'Hervorragende Erfahrung!')
         self.assertEqual(response.data['created_at'], response.data['updated_at'])
 
-    # filter and order review tests
+    # update review tests
 
-    def test_get_reviews_filtered_and_ordered(self):
-        # test listing reviews with filter and ordering
-        url = reverse('review-list') + f'?business_user_id={self.business_user1.id}&ordering=rating'
-        response = self.client.get(url)
+    def test_update_review_success(self):
+        # test updating review as reviewer
+        url = reverse('review-detail', kwargs={'pk': self.review1.id})
+        data = {
+            'rating': 5,
+            'description': 'Noch besser als erwartet!'
+        }
+        old_updated_at = self.review1.updated_at  # Capture old updated_at as datetime
+        response = self.client.patch(url, data, format='json')
         # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response structure (filtered to business_user1, ordered by rating ascending)
-        expected_data = [
-            {
-                'id': self.review1.id,
-                'business_user': self.business_user1.id,
-                'reviewer': self.reviewer.id,
-                'rating': 4,
-                'description': 'Sehr professioneller Service.',
-                'created_at': self.review1.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                'updated_at': self.review1.updated_at.strftime('%Y-%m-%dT%H:%M:%SZ')
-            }
-        ]
-        self.assertEqual(response.data, expected_data)
-
+        # refresh review from DB to get updated values
+        self.review1.refresh_from_db()
+        # assert response structure
+        self.assertEqual(response.data['id'], self.review1.id)
+        self.assertEqual(response.data['business_user'], self.business_user1.id)
+        self.assertEqual(response.data['reviewer'], self.reviewer.id)
+        self.assertEqual(response.data['rating'], 5)
+        self.assertEqual(response.data['description'], 'Noch besser als erwartet!')
+        self.assertEqual(response.data['created_at'], self.review1.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        # check updated_at has changed or is at least equal
+        self.assertGreaterEqual(self.review1.updated_at, old_updated_at)
+        self.assertGreaterEqual(response.data['updated_at'], response.data['created_at'])
+    
 
 class ReviewTestsUnhappy(APITestCase):
 
@@ -153,6 +177,33 @@ class ReviewTestsUnhappy(APITestCase):
             password='testpass'
         )
         Profile.objects.create(user=self.business_user1, type='business')
+        # self.client.force_authenticate(user=None)  # Default unauthenticated
+
+        # create reviewer
+        self.reviewer = User.objects.create_user(
+            username='reviewer',
+            password='testpass'
+        )
+        Profile.objects.create(user=self.reviewer, type='customer')
+        # create non-owner user
+        self.non_owner = User.objects.create_user(
+            username='non_owner',
+            password='testpass'
+        )
+        Profile.objects.create(user=self.non_owner, type='customer')
+        # create business user
+        self.business_user = User.objects.create_user(
+            username='business',
+            password='testpass'
+        )
+        Profile.objects.create(user=self.business_user, type='business')
+        # create review for testing
+        self.review = Review.objects.create(
+            business_user=self.business_user,
+            reviewer=self.reviewer,
+            rating=4,
+            description='Test'
+        )
         self.client.force_authenticate(user=None)  # Default unauthenticated
 
     # get review tests
@@ -200,3 +251,39 @@ class ReviewTestsUnhappy(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('You have already reviewed this business user.', str(response.data))
+
+    # update review tests
+
+    def test_update_review_unauthenticated(self):
+        # test updating review unauthenticated
+        self.client.force_authenticate(user=None)
+        url = reverse('review-detail', kwargs={'pk': self.review.id})
+        data = {'rating': 5}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_review_not_owner(self):
+        # test updating as non-owner
+        self.client.force_authenticate(user=self.non_owner)
+        url = reverse('review-detail', kwargs={'pk': self.review.id})
+        data = {'rating': 5}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('You are not the owner of this review.', str(response.data))
+
+    def test_update_review_invalid_rating(self):
+        # test updating with invalid rating
+        self.client.force_authenticate(user=self.reviewer)
+        url = reverse('review-detail', kwargs={'pk': self.review.id})
+        data = {'rating': 0}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Rating must be between 1 and 5.', str(response.data))
+
+    def test_update_review_not_found(self):
+        # test updating non-existent review
+        self.client.force_authenticate(user=self.reviewer)
+        url = reverse('review-detail', kwargs={'pk': 999})
+        data = {'rating': 5}
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
