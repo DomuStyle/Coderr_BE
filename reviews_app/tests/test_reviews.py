@@ -132,7 +132,7 @@ class ReviewTestsHappy(APITestCase):
         self.assertEqual(response.data['description'], 'Hervorragende Erfahrung!')
         self.assertEqual(response.data['created_at'], response.data['updated_at'])
 
-    # update review tests
+    # update reviews tests
 
     def test_update_review_success(self):
         # test updating review as reviewer
@@ -158,6 +158,17 @@ class ReviewTestsHappy(APITestCase):
         self.assertGreaterEqual(self.review1.updated_at, old_updated_at)
         self.assertGreaterEqual(response.data['updated_at'], response.data['created_at'])
     
+    # delete reviews tests
+
+    def test_delete_review_success(self):
+        # test deleting review as reviewer
+        url = reverse('review-detail', kwargs={'pk': self.review1.id})
+        response = self.client.delete(url)
+        # assert response status code is 204
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # assert review is deleted
+        self.assertFalse(Review.objects.filter(id=self.review1.id).exists())
+
 
 class ReviewTestsUnhappy(APITestCase):
 
@@ -286,4 +297,28 @@ class ReviewTestsUnhappy(APITestCase):
         url = reverse('review-detail', kwargs={'pk': 999})
         data = {'rating': 5}
         response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # delete reviews tests
+
+    def test_delete_review_unauthenticated(self):
+        # test deleting review unauthenticated
+        self.client.force_authenticate(user=None)
+        url = reverse('review-detail', kwargs={'pk': self.review.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_review_not_owner(self):
+        # test deleting as non-owner
+        self.client.force_authenticate(user=self.non_owner)
+        url = reverse('review-detail', kwargs={'pk': self.review.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('You are not the owner of this review.', str(response.data))
+
+    def test_delete_review_not_found(self):
+        # test deleting non-existent review
+        self.client.force_authenticate(user=self.reviewer)
+        url = reverse('review-detail', kwargs={'pk': 999})
+        response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from reviews_app.models import Review
 from rest_framework.response import Response
@@ -43,7 +43,7 @@ class ReviewListView(ListAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class ReviewSpecificView(UpdateAPIView):
+class ReviewSpecificView(DestroyAPIView, UpdateAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     queryset = Review.objects.all()
@@ -63,3 +63,10 @@ class ReviewSpecificView(UpdateAPIView):
         serializer.save()  # Save the changes
         # Return full review using ReviewSerializer
         return Response(ReviewSerializer(review).data, status=status.HTTP_200_OK)
+    
+    def delete(self, request, *args, **kwargs):
+        review = self.get_object()
+        if review.reviewer != request.user:
+            return Response({'error': 'You are not the owner of this review.'}, status=status.HTTP_403_FORBIDDEN)
+        self.perform_destroy(review)
+        return Response(status=status.HTTP_204_NO_CONTENT)
