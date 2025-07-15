@@ -29,4 +29,6 @@ urlpatterns = [
     path('api/', include('orders_app.api.urls')),
     # reviews_app path's
     path('api/', include('reviews_app.api.urls')),
+    # stats_app path's
+    path('api/', include('stats_app.api.urls')),
 ]
