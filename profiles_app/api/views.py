@@ -57,7 +57,7 @@ class BusinessProfileListView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = BusinessProfileSerializer
     queryset = Profile.objects.filter(type='business')
-
+    pagination_class = None
 
 class CustomerProfileListView(ListAPIView):
     # require authentication
