@@ -63,9 +63,14 @@ class OrderSpecificView(DestroyAPIView, UpdateAPIView):
         self.perform_update(serializer)
         return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
 
+    # def delete(self, request, *args, **kwargs):
+    #     # No additional checks needed, IsAdminUser handles permission
+    #     return self.destroy(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
-        # No additional checks needed, IsAdminUser handles permission
-        return self.destroy(request, *args, **kwargs)
+        order = self.get_object()
+        self.perform_destroy(order)
+        return Response({'detail': 'Order deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     
 
 class OrderCountView(APIView):
