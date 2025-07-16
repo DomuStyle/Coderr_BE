@@ -15,7 +15,7 @@ class OrderListView(ListAPIView):
     permission_classes = [IsAuthenticated]
     # serializer for list
     serializer_class = OrderSerializer
-    # disable pagination to match endpoint spec (simple list)
+    # disable pagination (simple list)
     pagination_class = None
     
     def get_queryset(self):
@@ -25,9 +25,6 @@ class OrderListView(ListAPIView):
         return queryset.order_by('-created_at')
 
     def post(self, request):
-        # require authentication for POST
-        if not request.user.is_authenticated:
-            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
         # check if user is customer
         if not Profile.objects.filter(user=request.user, type='customer').exists():
             return Response({'error': 'Only customers can create orders'}, status=status.HTTP_403_FORBIDDEN)
@@ -37,12 +34,13 @@ class OrderListView(ListAPIView):
             order = serializer.save()
             return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 class OrderSpecificView(DestroyAPIView, UpdateAPIView):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Order.objects.all()
+    # queryset = Order.objects.all()
+    queryset = Order.objects.select_related('customer_user', 'business_user')
     lookup_field = 'pk'
 
     def get_permissions(self):

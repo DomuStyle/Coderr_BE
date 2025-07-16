@@ -46,8 +46,6 @@ class OrderTestsHappy(APITestCase):
             features=['Logo Design', 'Visitenkarten'],
             offer_type='basic',
             status='in_progress'
-            # created_at=datetime(2024, 9, 29, 10, 0, 0, tzinfo=pytz.UTC),
-            # updated_at=datetime(2024, 9, 30, 12, 0, 0, tzinfo=pytz.UTC)
         )
         # authenticate as customer
         self.client.force_authenticate(user=self.customer_user)
@@ -155,37 +153,6 @@ class OrderTestsHappy(APITestCase):
         self.assertFalse(Order.objects.filter(id=self.order.id).exists())
 
     # count order tests
-
-    # def test_order_count(self):
-    #     # test retrieving in_progress order count
-    #     Order.objects.create(
-    #         customer_user=self.customer_user,
-    #         business_user=self.business_user,
-    #         title='Test',
-    #         # Dummy value for required field
-    #         revisions=1,  
-    #         delivery_time_in_days=1,  
-    #         price=10.00, 
-    #         features=[], 
-    #         offer_type='basic', 
-    #         status='in_progress'
-    #     )
-    #     Order.objects.create(
-    #         customer_user=self.customer_user,
-    #         business_user=self.business_user,
-    #         title='Test',
-    #         # Dummy value for required field
-    #         revisions=1, 
-    #         delivery_time_in_days=1, 
-    #         price=10.00, 
-    #         features=[], 
-    #         offer_type='basic', 
-    #         status='completed'
-    #     )
-    #     url = reverse('order-count', kwargs={'business_user_id': self.business_user.id})
-    #     response = self.client.get(url)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(response.data['order_count'], 1)
 
     def test_order_count(self):
         # test retrieving in_progress order count
