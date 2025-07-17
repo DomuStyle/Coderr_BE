@@ -10,17 +10,22 @@ from rest_framework.response import Response
 
 # local imports
 from .serializers import RegistrationSerializer, CustomAuthTokenSerializer
+from profiles_app.models import Profile
 
 class RegistrationView(APIView):
 
     permission_classes = [AllowAny] # gives permission to use this view at any time
 
     def post(self, request):
+        
         serializer = RegistrationSerializer(data=request.data)
         data = {}
 
         if serializer.is_valid():
+            user_type = serializer.validated_data.pop('type')  # pop type for Profile
             user = serializer.save()
+            # create Profile with type (fixes "Profile not found" by auto-creating on registration)
+            Profile.objects.create(user=user, type=user_type)
             token, created = Token.objects.get_or_create(user=user) # get or create is used to make sure to get a token if it alrdy exists
             data = {
                 'token': token.key,

@@ -34,33 +34,18 @@ class ProfileDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Profile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-
-# class BusinessProfileListView(APIView):
-#     # require authentication
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         # fetch all business profiles
-#         profiles = Profile.objects.filter(type='business')
-#         serializer = ProfileSerializer(profiles, many=True)
-#         # exclude email and created_at from response
-#         data = [
-#             {key: item[key] for key in item if key not in ['email', 'created_at']}
-#             for item in serializer.data
-#         ]
-#         return Response(data, status=status.HTTP_200_OK)
 
 
 class BusinessProfileListView(ListAPIView):
     # require authentication
     permission_classes = [IsAuthenticated]
     serializer_class = BusinessProfileSerializer
-    queryset = Profile.objects.filter(type='business')
+    queryset = Profile.objects.filter(type='business').select_related('user')
     pagination_class = None
 
 class CustomerProfileListView(ListAPIView):
     # require authentication
     permission_classes = [IsAuthenticated]
     serializer_class = CustomerProfileSerializer
-    queryset = Profile.objects.filter(type='customer')
+    queryset = Profile.objects.filter(type='customer').select_related('user')
+    pagination_class = None

@@ -253,7 +253,7 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
 
-class ProfileTestsUnappy(APITestCase):
+class ProfileTestsUnhappy(APITestCase):
     
     def setUp(self):
         # set up test client and user

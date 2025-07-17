@@ -14,7 +14,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     repeated_password = serializers.CharField(write_only=True)
     username = serializers.CharField(write_only=True, allow_blank=False)
-    type = serializers.ChoiceField(choices=['customer', 'business'], write_only=True)
+    type = serializers.ChoiceField(choices=['customer', 'business'], write_only=True, required=True)
     
     class Meta:
         model = User # specifies that this serializer is based on the User model
@@ -58,15 +58,12 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        # extract and remove type from validated data
-        user_type = validated_data.pop('type')
         # remove repeated_password as it's not needed for user creation
         validated_data.pop('repeated_password')
         # normalize email to lowercase
         validated_data['email'] = validated_data['email'].lower()
-        # create user with validated data
+        # create user with validated data (no pop 'type' here, view handles it)
         user = User.objects.create_user(**validated_data)
-        
         # return the created user
         return user
     
