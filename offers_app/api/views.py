@@ -2,9 +2,10 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView,
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q, Min
-from offers_app.models import Offer, OfferDetail, Profile
+from offers_app.models import Offer, OfferDetail
+from profiles_app.models import Profile
 from .serializers import OfferListSerializer, FullOfferDetailSerializer, OfferCreateSerializer, OfferUpdateSerializer
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -53,11 +54,26 @@ class OfferListView(ListAPIView):
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
     
+    # def post(self, request):
+    #     # require authentication for POST
+    #     if not request.user.is_authenticated:
+    #         return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    #     # check if user is business
+    #     if not Profile.objects.filter(user=request.user, type='business').exists():
+    #         return Response({'error': 'Only business users can create offers'}, status=status.HTTP_403_FORBIDDEN)
+    #     # create offer
+    #     serializer = OfferCreateSerializer(data=request.data, context={'request': request})
+    #     if serializer.is_valid():
+    #         offer = serializer.save()
+    #         # return serialized offer using OfferCreateSerializer to include full details
+    #         return Response(OfferCreateSerializer(offer).data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def post(self, request):
         # require authentication for POST
         if not request.user.is_authenticated:
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        # check if user is business
+        # check if user is business; now works with correct Profile import
         if not Profile.objects.filter(user=request.user, type='business').exists():
             return Response({'error': 'Only business users can create offers'}, status=status.HTTP_403_FORBIDDEN)
         # create offer
@@ -67,6 +83,7 @@ class OfferListView(ListAPIView):
             # return serialized offer using OfferCreateSerializer to include full details
             return Response(OfferCreateSerializer(offer).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     
 class OfferDetailView(RetrieveAPIView):
     serializer_class = FullOfferDetailSerializer
