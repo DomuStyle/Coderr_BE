@@ -12,31 +12,52 @@ from rest_framework.response import Response
 from .serializers import RegistrationSerializer, CustomAuthTokenSerializer
 from profiles_app.models import Profile
 
-class RegistrationView(APIView):
+# class RegistrationView(APIView):
 
-    permission_classes = [AllowAny] # gives permission to use this view at any time
+#     permission_classes = [AllowAny] # gives permission to use this view at any time
+
+#     def post(self, request):
+        
+#         serializer = RegistrationSerializer(data=request.data)
+#         data = {}
+
+#         if serializer.is_valid():
+#             user_type = serializer.validated_data.pop('type')  # pop type for Profile
+#             user = serializer.save()
+#             # create Profile with type (fixes "Profile not found" by auto-creating on registration)
+#             Profile.objects.create(user=user, type=user_type)
+#             token, created = Token.objects.get_or_create(user=user) # get or create is used to make sure to get a token if it alrdy exists
+#             data = {
+#                 'token': token.key,
+#                 'username': user.username,
+#                 'email': user.email,
+#                 'user_id': user.id
+#             }
+
+#         # return success response with 201 status
+#             return Response(data, status=status.HTTP_201_CREATED)
+#         # return error response with 400 status if data is invalid
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RegistrationView(APIView):
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        
         serializer = RegistrationSerializer(data=request.data)
-        data = {}
-
         if serializer.is_valid():
-            user_type = serializer.validated_data.pop('type')  # pop type for Profile
-            user = serializer.save()
-            # create Profile with type (fixes "Profile not found" by auto-creating on registration)
-            Profile.objects.create(user=user, type=user_type)
-            token, created = Token.objects.get_or_create(user=user) # get or create is used to make sure to get a token if it alrdy exists
-            data = {
+            user_type = serializer.validated_data['type']  # Use validated data for type
+            user = serializer.save()  # Creates User (signal creates Profile)
+            # Update existing profile instead of create
+            profile = user.profile  # Fetch auto-created
+            profile.type = user_type
+            profile.save()
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
                 'token': token.key,
                 'username': user.username,
                 'email': user.email,
                 'user_id': user.id
-            }
-
-        # return success response with 201 status
-            return Response(data, status=status.HTTP_201_CREATED)
-        # return error response with 400 status if data is invalid
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 

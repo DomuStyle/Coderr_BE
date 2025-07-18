@@ -11,26 +11,24 @@ import pytz
 class OfferTestsHappy(APITestCase):
 
     def setUp(self):
-        # clear existing offers to ensure clean state
+        # clear existing offers to ensure clean state (optional, but good for isolation)
         Offer.objects.all().delete()
         OfferDetail.objects.all().delete()
         # set up test client
         self.client = APIClient()
-        # create business user
+        # create business user with expected username/first_name/last_name
         self.user = User.objects.create_user(
-            username='jdoe',
+            username='jdoe',  # Matches expected in user_details assertions
             email='jdoe@business.de',
             password='testpass123'
         )
-        Profile.objects.create(user=self.user, type='business', first_name='John', last_name='Doe')
-        # create another user
-        self.user2 = User.objects.create_user(
-            username='jane',
-            email='jane@business.de',
-            password='testpass456'
-        )
-        Profile.objects.create(user=self.user2, type='business')
-        # create offer
+        self.profile = self.user.profile  # Fetch auto-created Profile
+        self.profile.type = 'business'
+        self.profile.first_name = 'John'
+        self.profile.last_name = 'Doe'
+        self.profile.save()  # Save updates
+        
+        # Create an offer with data matching test assertions
         self.offer = Offer.objects.create(
             user=self.user,
             title='Website Design',
@@ -38,35 +36,36 @@ class OfferTestsHappy(APITestCase):
             created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
             updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
         )
-        # create offer details
-        OfferDetail.objects.create(
+        # Create 3 details with values to match assertions (revisions=2 for basic, delivery=7 for basic/min=7, features=['Basic Design'], etc.)
+        self.detail_basic = OfferDetail.objects.create(
             offer=self.offer,
             title='Basic',
-            revisions=2,
-            delivery_time_in_days=7,
+            revisions=2,  # Matches expected
+            delivery_time_in_days=7,  # Matches min_delivery_time=7
             price=100.00,
-            features=['Basic Design'],
+            features=['Basic Design'],  # Matches expected
             offer_type='basic'
         )
-        OfferDetail.objects.create(
+        self.detail_standard = OfferDetail.objects.create(
             offer=self.offer,
             title='Standard',
             revisions=5,
             delivery_time_in_days=10,
             price=200.00,
-            features=['Standard Design'],
+            features=['Standard Design'],  # Matches expected
             offer_type='standard'
         )
-        OfferDetail.objects.create(
+        self.detail_premium = OfferDetail.objects.create(
             offer=self.offer,
             title='Premium',
             revisions=10,
             delivery_time_in_days=14,
             price=500.00,
-            features=['Premium Design'],
+            features=['Premium Design'],  # Matches expected
             offer_type='premium'
         )
-        # authenticate client
+
+        # authenticate the client
         self.client.force_authenticate(user=self.user)
 
     def test_get_offer_detail(self):
@@ -252,11 +251,15 @@ class OfferTestsUnappy(APITestCase):
         # set up test client and user
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='jdoe',
+            username='jdoe',  # Matches any expected in unhappy tests
             email='jdoe@business.de',
             password='testpass123'
         )
-        Profile.objects.create(user=self.user, type='business')
+        self.profile = self.user.profile  # Fetch auto-created
+        self.profile.type = 'business'
+        self.profile.save()
+
+        # Create an offer with data for unhappy tests
         self.offer = Offer.objects.create(
             user=self.user,
             title='Website Design',
@@ -264,7 +267,7 @@ class OfferTestsUnappy(APITestCase):
             created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
             updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
         )
-        # create offer details
+        # Create at least one detail (from commented setUp)
         OfferDetail.objects.create(
             offer=self.offer,
             title='Basic',
@@ -274,8 +277,6 @@ class OfferTestsUnappy(APITestCase):
             features=['Basic Design'],
             offer_type='basic'
         )
-        # authenticate client (optional, as endpoint doesn't require auth)
-        self.client.force_authenticate(user=self.user)
 
         # create another user for non-owner tests
         self.user2 = User.objects.create_user(
@@ -283,8 +284,12 @@ class OfferTestsUnappy(APITestCase):
             email='jane@business.de',
             password='testpass456'
         )
-        Profile.objects.create(user=self.user2, type='business')  # business type to avoid unrelated errors
+        self.profile2 = self.user2.profile
+        self.profile2.type = 'business'
+        self.profile2.save()
 
+        # authenticate client (optional, as endpoint doesn't require auth, but for consistency)
+        self.client.force_authenticate(user=self.user)
 
     def test_get_offers_invalid_params(self):
         # test invalid query parameters

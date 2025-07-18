@@ -92,7 +92,8 @@ class OfferUpdateSerializer(OfferCreateSerializer):
     details = FullOfferDetailSerializer(many=True, required=False, partial=True)
 
     class Meta(OfferCreateSerializer.Meta):
-        fields = ['title', 'image', 'description', 'details']
+        fields = ['id', 'title', 'image', 'description', 'details']  
+        extra_kwargs = {'id': {'read_only': True}}  # make id read-only
 
     def validate_details(self, value):
         # optional validation for partial updates, ensure offer_type if provided

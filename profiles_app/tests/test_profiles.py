@@ -17,17 +17,16 @@ class ProfileTestsHappy(APITestCase):
             email='test@business.de',
             password='testpass123'
         )
-        self.profile = Profile.objects.create(
-            user=self.user,
-            first_name='Max',
-            last_name='Mustermann',
-            location='Berlin',
-            tel='123456789',
-            description='Business description',
-            working_hours='9-17',
-            type='business',
-            created_at=datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
-        )
+        self.profile = self.user.profile  # Fetch auto-created Profile
+        self.profile.first_name = 'Max'
+        self.profile.last_name = 'Mustermann'
+        self.profile.location = 'Berlin'
+        self.profile.tel = '123456789'
+        self.profile.description = 'Business description'
+        self.profile.working_hours = '9-17'
+        self.profile.type = 'business'
+        self.profile.created_at = datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
+        self.profile.save()  # Save updates
         
         # create another business profile
         self.user2 = User.objects.create_user(
@@ -35,33 +34,31 @@ class ProfileTestsHappy(APITestCase):
             email='another@business.de',
             password='testpass456'
         )
-        self.profile2 = Profile.objects.create(
-            user=self.user2,
-            first_name='Anna',
-            last_name='Schmidt',
-            location='Munich',
-            tel='987654321',
-            description='Freelancer',
-            working_hours='10-18',
-            type='business'
-        )
+        self.profile2 = self.user2.profile  # Fetch auto-created
+        self.profile2.first_name = 'Anna'
+        self.profile2.last_name = 'Schmidt'
+        self.profile2.location = 'Munich'
+        self.profile2.tel = '987654321'
+        self.profile2.description = 'Freelancer'
+        self.profile2.working_hours = '10-18'
+        self.profile2.type = 'business'
+        self.profile2.save()
 
-         # create a customer profile to ensure filtering
+        # create a customer profile to ensure filtering
         self.customer_user = User.objects.create_user(
             username='customer',
             email='customer@test.de',
             password='testpass789'
         )
-        self.customer_profile = Profile.objects.create(
-            user=self.customer_user,
-            first_name='Jane',
-            last_name='Doe',
-            location='Hamburg',
-            tel='555555555',
-            description='',
-            working_hours='',
-            type='customer'
-        )
+        self.customer_profile = self.customer_user.profile  # Fetch auto-created
+        self.customer_profile.first_name = 'Jane'
+        self.customer_profile.last_name = 'Doe'
+        self.customer_profile.location = 'Hamburg'
+        self.customer_profile.tel = '555555555'
+        self.customer_profile.description = ''
+        self.customer_profile.working_hours = ''
+        self.customer_profile.type = 'customer'
+        self.customer_profile.save()
 
         # authenticate the client
         self.client.force_authenticate(user=self.user)
@@ -105,17 +102,17 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.data['tel'], '987654321')
 
     def test_get_profile_empty_fields(self):
-    # test profile with empty fields
-        empty_profile = Profile.objects.create(
-            user=User.objects.create_user(username='emptyuser', password='pass'),
-            first_name='',
-            last_name='',
-            location='',
-            tel='',
-            description='',
-            working_hours='',
-            type='customer'
-        )
+        # test profile with empty fields
+        empty_user = User.objects.create_user(username='emptyuser', password='pass')
+        empty_profile = empty_user.profile  # Fetch auto-created
+        empty_profile.first_name = ''
+        empty_profile.last_name = ''
+        empty_profile.location = ''
+        empty_profile.tel = ''
+        empty_profile.description = ''
+        empty_profile.working_hours = ''
+        empty_profile.type = 'customer'
+        empty_profile.save()
         url = reverse('profile-detail', kwargs={'pk': empty_profile.user.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -167,16 +164,15 @@ class ProfileTestsHappy(APITestCase):
             email='empty@business.de',
             password='pass'
         )
-        empty_business_profile = Profile.objects.create(
-            user=empty_business_user,
-            first_name='',
-            last_name='',
-            location='',
-            tel='',
-            description='',
-            working_hours='',
-            type='business'
-        )
+        empty_business_profile = empty_business_user.profile  # Fetch auto-created
+        empty_business_profile.first_name = ''
+        empty_business_profile.last_name = ''
+        empty_business_profile.location = ''
+        empty_business_profile.tel = ''
+        empty_business_profile.description = ''
+        empty_business_profile.working_hours = ''
+        empty_business_profile.type = 'business'
+        empty_business_profile.save()
         url = reverse('business-profiles-list')
         response = self.client.get(url)
         # assert empty fields return ''
@@ -228,16 +224,15 @@ class ProfileTestsHappy(APITestCase):
             email='empty@customer.de',
             password='pass'
         )
-        empty_customer_profile = Profile.objects.create(
-            user=empty_customer_user,
-            first_name='',
-            last_name='',
-            location='',
-            tel='',
-            description='',
-            working_hours='',
-            type='customer'
-        )
+        empty_customer_profile = empty_customer_user.profile  # Fetch auto-created
+        empty_customer_profile.first_name = ''
+        empty_customer_profile.last_name = ''
+        empty_customer_profile.location = ''
+        empty_customer_profile.tel = ''
+        empty_customer_profile.description = ''
+        empty_customer_profile.working_hours = ''
+        empty_customer_profile.type = 'customer'
+        empty_customer_profile.save()
         url = reverse('customer-profiles-list')
         response = self.client.get(url)
         for profile in response.data:
@@ -254,7 +249,7 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.data, [])
 
 class ProfileTestsUnhappy(APITestCase):
-    
+
     def setUp(self):
         # set up test client and user
         self.client = APIClient()
@@ -263,17 +258,16 @@ class ProfileTestsUnhappy(APITestCase):
             email='test@business.de',
             password='testpass123'
         )
-        self.profile = Profile.objects.create(
-            user=self.user,
-            first_name='Max',
-            last_name='Mustermann',
-            location='Berlin',
-            tel='123456789',
-            description='Business description',
-            working_hours='9-17',
-            type='business',
-            created_at=datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
-        )
+        self.profile = self.user.profile  # Fetch auto-created
+        self.profile.first_name = 'Max'
+        self.profile.last_name = 'Mustermann'
+        self.profile.location = 'Berlin'
+        self.profile.tel = '123456789'
+        self.profile.description = 'Business description'
+        self.profile.working_hours = '9-17'
+        self.profile.type = 'business'
+        self.profile.created_at = datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
+        self.profile.save()
         # authenticate the client
         self.client.force_authenticate(user=self.user)
 
