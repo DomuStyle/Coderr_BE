@@ -34,7 +34,7 @@ class OfferListSerializer(serializers.ModelSerializer):
     # image field
     image = serializers.ImageField(allow_null=True, required=False)
     # ensure decimal precision for min_price
-    min_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    min_price = serializers.DecimalField(source='annotated_min_price', max_digits=10, decimal_places=2, read_only=True) # Use annotated value
     # min_delivery_time as integer
     min_delivery_time = serializers.IntegerField(read_only=True)
 

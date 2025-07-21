@@ -57,34 +57,13 @@ class RegistrationSerializer(serializers.ModelSerializer):
         # return normalized username
         return value
 
-    # def create(self, validated_data):
-    #     # remove repeated_password as it's not needed for user creation
-    #     validated_data.pop('repeated_password')
-    #     # normalize email to lowercase
-    #     validated_data['email'] = validated_data['email'].lower()
-    #     # create user with validated data (no pop 'type' here, view handles it)
-    #     user = User.objects.create_user(**validated_data)
-    #     # return the created user
-    #     return user
-    
-    # def create(self, validated_data):
-    #     validated_data.pop('repeated_password')
-    #     user_type = validated_data.get('type', 'customer')  # Safe get with default
-    #     if 'type' in validated_data:
-    #         del validated_data['type']
-    #     validated_data['email'] = validated_data['email'].lower()
-    #     user = User.objects.create_user(**validated_data)
-    #     profile = user.profile
-    #     profile.type = user_type
-    #     profile.save()    
-    #     return user
-
     def create(self, validated_data):
         validated_data.pop('repeated_password')
         user_type = validated_data.pop('type', 'customer')  # Pop with default for safety
         validated_data['email'] = validated_data['email'].lower()
         user = User.objects.create_user(**validated_data)
         return user  # View now handles profile update
+
 
 class CustomAuthTokenSerializer(serializers.Serializer):
     # define username field for authentication input

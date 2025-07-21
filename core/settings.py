@@ -157,5 +157,7 @@ REST_FRAMEWORK = {
         # 'rest_framework.authentication.SessionAuthentication',  # for tests
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10  # Adjust based on frontend requirements
+    'PAGE_SIZE': 10,  # Your default
+    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # Enables ?page_size override
+    'MAX_PAGE_SIZE': 10  # Optional: Limit max override to prevent abuse (e.g., ?page_size=1000)
 }
