@@ -25,6 +25,9 @@ class OfferListView(ListAPIView):
 
     def get_queryset(self):
         queryset = Offer.objects.select_related('user').order_by('-created_at').distinct()
+        queryset = queryset.annotate(
+            annotated_min_price=Coalesce(Min('details__price'), Decimal('0'))  # always annotate min_price for serializer
+        )
         creator_id = self.request.query_params.get('creator_id')
         if creator_id:
             queryset = queryset.filter(user__id=creator_id)
@@ -92,6 +95,12 @@ class OfferSpecificView(DestroyAPIView, UpdateAPIView, RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Offer.objects.all()
     lookup_field = 'pk'
+
+    def get_queryset(self):
+        # annotate annotated_min_price for min_price field in serializer (to match doc)
+        return Offer.objects.annotate(
+            annotated_min_price=Coalesce(Min('details__price'), Decimal('0'))
+        )
 
     def get_serializer_class(self):
         # use OfferUpdateSerializer for PATCH
