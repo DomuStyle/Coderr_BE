@@ -24,15 +24,34 @@ class OrderListView(ListAPIView):
         queryset = Order.objects.filter(Q(customer_user=user) | Q(business_user=user)).select_related('customer_user', 'business_user')
         return queryset.order_by('-created_at')
 
+    # def post(self, request):
+    #     # check if user is customer
+    #     if not Profile.objects.filter(user=request.user, type='customer').exists():
+    #         return Response({'error': 'Only customers can create orders'}, status=status.HTTP_403_FORBIDDEN)
+    #     # create order
+    #     serializer = OrderCreateSerializer(data=request.data, context={'request': request})
+    #     if serializer.is_valid():
+    #         order = serializer.save()
+    #         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def post(self, request):
-        # check if user is customer
+        # check if the authenticated user is a customer; if not, return a 403 error to match permissions in the doc
         if not Profile.objects.filter(user=request.user, type='customer').exists():
             return Response({'error': 'Only customers can create orders'}, status=status.HTTP_403_FORBIDDEN)
-        # create order
+        # instantiate the OrderCreateSerializer with the request data and context (including the request for user access)
         serializer = OrderCreateSerializer(data=request.data, context={'request': request})
+        # validate the serializer; if valid, proceed to save
         if serializer.is_valid():
+            # save the serializer to create the order object
             order = serializer.save()
-            return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+            # serialize the new order using OrderSerializer to get the response data structure matching the doc
+            data = OrderSerializer(order).data
+            # add the input offer_detail_id to the data dict; this clarifies the linked detail without changing the model
+            data['offer_detail_id'] = serializer.validated_data['offer_detail_id']
+            # return the enhanced data with 201 status, ensuring the response includes the expected order details plus the input id
+            return Response(data, status=status.HTTP_201_CREATED)
+        # if invalid, return errors with 400 status as per the doc
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
