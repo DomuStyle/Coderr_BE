@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from decimal import Decimal, InvalidOperation
 from profiles_app.models import Profile
 from .serializers import OfferListSerializer, FullOfferDetailSerializer, OfferCreateSerializer, OfferUpdateSerializer
+from .permissions import IsOfferOwnerOrReadOnly
 from rest_framework import serializers, exceptions
 from rest_framework.permissions import IsAuthenticated
 
@@ -92,7 +93,7 @@ class OfferSpecificView(DestroyAPIView, UpdateAPIView, RetrieveAPIView):
     # specify serializer for specific offer
     serializer_class = OfferListSerializer
     # require authentication per endpoint doc
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOfferOwnerOrReadOnly]
     queryset = Offer.objects.all()
     lookup_field = 'pk'
 
@@ -108,15 +109,23 @@ class OfferSpecificView(DestroyAPIView, UpdateAPIView, RetrieveAPIView):
             return OfferUpdateSerializer
         return super().get_serializer_class()
 
+    # def patch(self, request, *args, **kwargs):
+    #     # ensure user is owner
+    #     offer = self.get_object()
+    #     if offer.user != request.user:
+    #         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+    #     return self.partial_update(request, *args, **kwargs)
+    
+    # def delete(self, request, *args, **kwargs):
+    #     offer = self.get_object()
+    #     if offer.user != request.user:
+    #         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+    #     return self.destroy(request, *args, **kwargs)
+
     def patch(self, request, *args, **kwargs):
-        # ensure user is owner
-        offer = self.get_object()
-        if offer.user != request.user:
-            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        # permission class handles 403
         return self.partial_update(request, *args, **kwargs)
     
     def delete(self, request, *args, **kwargs):
-        offer = self.get_object()
-        if offer.user != request.user:
-            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        # permission class handles 403
         return self.destroy(request, *args, **kwargs)
