@@ -1,13 +1,15 @@
 from django.urls import reverse
-from rest_framework.test import APITestCase, APIClient
-from rest_framework import status
-from reviews_app.models import Review
-from profiles_app.models import Profile
-from offers_app.models import Offer
 from django.contrib.auth.models import User
+from rest_framework import status
+from rest_framework.test import APITestCase, APIClient
+from profiles_app.models import Profile
+from reviews_app.models import Review
+from offers_app.models import Offer
 
 class StatsTestsHappy(APITestCase):
     def setUp(self):
+        # debug print to verify test DB starts empty (remove after verification)
+        print(f"Users before setup: {User.objects.count()}")
         # clear existing data to ensure clean state
         Review.objects.all().delete()
         Profile.objects.all().delete()
@@ -17,16 +19,29 @@ class StatsTestsHappy(APITestCase):
         # create data for stats
         # Business profiles (3)
         business_user1 = User.objects.create_user(username='business1', password='test')
-        Profile.objects.create(user=business_user1, type='business')
+        # get existing profile (auto-created by signal) and set type to business
+        business_profile1 = Profile.objects.get(user=business_user1)
+        business_profile1.type = 'business'
+        business_profile1.save()
         business_user2 = User.objects.create_user(username='business2', password='test')
-        Profile.objects.create(user=business_user2, type='business')
+        # get existing profile and set type to business
+        business_profile2 = Profile.objects.get(user=business_user2)
+        business_profile2.type = 'business'
+        business_profile2.save()
         business_user3 = User.objects.create_user(username='business3', password='test')
-        Profile.objects.create(user=business_user3, type='business')
+        # get existing profile and set type to business
+        business_profile3 = Profile.objects.get(user=business_user3)
+        business_profile3.type = 'business'
+        business_profile3.save()
         # Offers (2)
         Offer.objects.create(user=business_user1, title='Offer1', description='Test')
         Offer.objects.create(user=business_user2, title='Offer2', description='Test')
         # Reviews (2, ratings 4 and 5, avg 4.5)
         reviewer = User.objects.create_user(username='reviewer', password='test')
+        # get existing profile and set type to customer
+        reviewer_profile = Profile.objects.get(user=reviewer)
+        reviewer_profile.type = 'customer'
+        reviewer_profile.save()
         Review.objects.create(business_user=business_user1, reviewer=reviewer, rating=4, description='Test')
         Review.objects.create(business_user=business_user2, reviewer=reviewer, rating=5, description='Test')
 
