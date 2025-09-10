@@ -374,20 +374,32 @@ class OfferTestsUnappy(APITestCase):
     # patch offer tests
 
     def test_update_offer_non_owner(self):
-        # test updating offer as non-owner
-        other_offer = Offer.objects.create(
-            user=self.user2,
-            title='Other Offer',
-            description='Other...',
-            created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
-            updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
-        )
-        url = reverse('offer-detail', kwargs={'pk': other_offer.id})
-        data = {'title': 'Updated'}
+        # create a business user for owning the offer
+        business_user = User.objects.create_user(username='business', password='pass', email='business@example.com')
+        # get the existing profile (auto-created by signal) and set its type to business
+        business_profile = Profile.objects.get(user=business_user)
+        business_profile.type = 'business'
+        business_profile.save()
+        # create a non-owner user
+        non_owner = User.objects.create_user(username='nonowner', password='pass', email='nonowner@example.com')
+        # get the existing profile for non-owner and set its type to customer
+        non_owner_profile = Profile.objects.get(user=non_owner)
+        non_owner_profile.type = 'customer'
+        non_owner_profile.save()
+        # create an offer owned by the business user
+        offer = Offer.objects.create(user=business_user, title='Test Offer', description='Test Desc')
+        # get the url for the specific offer detail view
+        url = reverse('offer-detail', kwargs={'pk': offer.id})
+        # prepare patch data to attempt update
+        data = {'title': 'Updated Title'}
+        # authenticate as the non-owner user
+        self.client.force_authenticate(user=non_owner)
+        # send patch request as non-owner
         response = self.client.patch(url, data, format='json')
-        # assert response status code is 403
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data['error'], 'Permission denied')
+        # assert the status code is 403 forbidden
+        self.assertEqual(response.status_code, 403)
+        # assert the error message in 'detail' key matches 'permission denied'
+        self.assertEqual(response.data['detail'], 'Permission denied')
 
     def test_update_offer_not_found(self):
         # test updating non-existent offer

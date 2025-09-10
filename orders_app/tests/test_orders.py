@@ -1,16 +1,18 @@
 from django.urls import reverse
-from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth.models import User
-from profiles_app.models import Profile
-from orders_app.models import Order
-from offers_app.models import OfferDetail, Offer
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
+from offers_app.models import OfferDetail, Offer
+from orders_app.models import Order
+from profiles_app.models import Profile
 from datetime import datetime
 import pytz
 
 
 class OrderTestsHappy(APITestCase):
     def setUp(self):
+        # print user count to verify test DB starts empty
+        # print(f"Users before setup: {User.objects.count()}")
         # clear existing orders to ensure clean state
         Order.objects.all().delete()
         # set up test client
@@ -21,20 +23,26 @@ class OrderTestsHappy(APITestCase):
             email='customer@example.com',
             password='testpass123'
         )
-        Profile.objects.create(user=self.customer_user, type='customer')
+        # get existing profile (auto-created by signal) and set type to customer
+        self.customer_profile = Profile.objects.get(user=self.customer_user)
+        self.customer_profile.type = 'customer'
+        self.customer_profile.save()
         # create business user
         self.business_user = User.objects.create_user(
             username='business',
             email='business@example.com',
             password='testpass456'
         )
+        # get existing profile (auto-created by signal) and set type to business
+        self.business_profile = Profile.objects.get(user=self.business_user)
+        self.business_profile.type = 'business'
+        self.business_profile.save()
         # create offer for offer_detail
         self.offer = Offer.objects.create(
             user=self.business_user,
             title='Logo Design',
             description='Professional Logo Design...'
         )
-        Profile.objects.create(user=self.business_user, type='business')
         # create order
         self.order = Order.objects.create(
             customer_user=self.customer_user,
@@ -187,6 +195,8 @@ class OrderTestsHappy(APITestCase):
 class OrderTestsUnhappy(APITestCase):
     
     def setUp(self):
+        # print user count to verify test DB starts empty
+        # print(f"Users before setup: {User.objects.count()}")
         # clear existing orders to ensure clean state
         Order.objects.all().delete()
         # set up test client
@@ -197,14 +207,20 @@ class OrderTestsUnhappy(APITestCase):
             email='customer@example.com',
             password='testpass123'
         )
-        Profile.objects.create(user=self.customer_user, type='customer')  # default as customer
+        # get existing profile (auto-created by signal) and set type to customer
+        self.customer_profile = Profile.objects.get(user=self.customer_user)
+        self.customer_profile.type = 'customer'
+        self.customer_profile.save()
         # create business user
         self.business_user = User.objects.create_user(
             username='business',
             email='business@example.com',
             password='testpass456'
         )
-        Profile.objects.create(user=self.business_user, type='business')
+        # get existing profile (auto-created by signal) and set type to business
+        self.business_profile = Profile.objects.get(user=self.business_user)
+        self.business_profile.type = 'business'
+        self.business_profile.save()
         # create order
         self.order = Order.objects.create(
             customer_user=self.customer_user,
@@ -217,7 +233,8 @@ class OrderTestsUnhappy(APITestCase):
             offer_type='basic',
             status='in_progress'
         )
-        self.client.force_authenticate(user=self.customer_user)   # authenticate as customer for POST tests
+        # authenticate as customer for POST tests
+        self.client.force_authenticate(user=self.customer_user)
 
     def test_get_orders_unauthenticated(self):
         # test listing orders when not authenticated
@@ -262,7 +279,7 @@ class OrderTestsUnhappy(APITestCase):
         data = {'status': 'completed'}
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data['error'], 'Permission denied')
+        self.assertEqual(response.data['error'], 'Permission denied')  # reverted to 'error' to match app response
 
     def test_update_order_invalid_status(self):
         # test updating with invalid status
@@ -322,6 +339,4 @@ class OrderTestsUnhappy(APITestCase):
     def test_completed_order_count_not_found(self):
         url = reverse('completed-order-count', kwargs={'business_user_id': 999})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND) 
