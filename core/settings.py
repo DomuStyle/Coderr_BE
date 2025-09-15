@@ -15,6 +15,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+MEDIA_URL = '/profile_pics/'  # Matches your upload path; can be '/media/' if upload_to='profile_pics'
+MEDIA_ROOT = BASE_DIR / 'profile_pics'  # Directory where images are saved
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -25,7 +27,11 @@ SECRET_KEY = 'django-insecure-@kyr3uk@6m_jjvkz54-8b0ix1^$+l-v63e^p3vm^y@!=fvkx8&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+
+    'localhost',
+]
 
 
 # Application definition
@@ -41,23 +47,23 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_filters',
     'user_auth_app',
-    # 'profiles_app',
     'profiles_app.apps.ProfilesAppConfig',
     'offers_app',
     'orders_app',
     'reviews_app',
     'stats_app',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 CSRF_TRUSTED_ORIGINS = [

@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
@@ -8,7 +8,7 @@ from django.db.models.functions import Coalesce
 from decimal import Decimal, InvalidOperation
 from profiles_app.models import Profile
 from .serializers import OfferListSerializer, FullOfferDetailSerializer, OfferCreateSerializer, OfferUpdateSerializer
-from .permissions import IsOfferOwnerOrReadOnly
+from .permissions import IsOfferOwnerOrReadOnly, IsOfferDetailOwnerOrReadOnly
 from rest_framework import serializers, exceptions
 from rest_framework.permissions import IsAuthenticated
 
@@ -81,13 +81,17 @@ class OfferListView(ListAPIView):
             return Response(OfferCreateSerializer(offer).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    
-class OfferDetailView(RetrieveAPIView):
+# class OfferDetailView(RetrieveAPIView):
+#     serializer_class = FullOfferDetailSerializer
+#     permission_classes = [IsAuthenticated]  # Align with GET /api/offers/{id}/
+#     queryset = OfferDetail.objects.all()
+#     lookup_field = 'id'
+
+class OfferDetailView(RetrieveUpdateDestroyAPIView):  # extended to support PATCH and DELETE
     serializer_class = FullOfferDetailSerializer
-    permission_classes = [IsAuthenticated]  # Align with GET /api/offers/{id}/
+    permission_classes = [IsAuthenticated, IsOfferDetailOwnerOrReadOnly]  # added permissions for owner check
     queryset = OfferDetail.objects.all()
     lookup_field = 'id'
-
 
 class OfferSpecificView(DestroyAPIView, UpdateAPIView, RetrieveAPIView):
     # specify serializer for specific offer

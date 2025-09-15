@@ -1,14 +1,16 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from reviews_app.models import Review
 from profiles_app.models import Profile
 from offers_app.models import Offer
 from django.db.models import Avg
 
 class BaseInfoView(APIView):
-    permission_classes = []  # No permissions, public per docu
-
+    permission_classes = [AllowAny]  # No permissions, public per docu
+    authentication_classes = []
+    
     def get(self, request):
         try:
             review_count = Review.objects.count()
