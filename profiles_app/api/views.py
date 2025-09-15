@@ -3,6 +3,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from profiles_app.models import Profile
 from .serializers import ProfileSerializer, BusinessProfileSerializer, CustomerProfileSerializer
 
@@ -10,7 +11,9 @@ from .serializers import ProfileSerializer, BusinessProfileSerializer, CustomerP
 class ProfileDetailView(APIView):
     # require authentication
     permission_classes = [IsAuthenticated]
-
+    # support JSON and multipart for PATCH with file uploads
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
     def get(self, request, pk):
         try:
             # fetch profile by user ID
@@ -42,6 +45,7 @@ class BusinessProfileListView(ListAPIView):
     serializer_class = BusinessProfileSerializer
     queryset = Profile.objects.filter(type='business').select_related('user')
     pagination_class = None
+
 
 class CustomerProfileListView(ListAPIView):
     # require authentication

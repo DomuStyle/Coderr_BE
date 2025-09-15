@@ -15,7 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()  # Nest UserSerializer; writable for email updates
     created_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
-    
+    file = serializers.ImageField(allow_null=True, required=False)  # Added: Support file uploads, allow null/empty
+
     class Meta:
         model = Profile
         fields = [
@@ -23,6 +24,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'location', 'tel', 'description', 'working_hours', 'type',
             'created_at'
         ]  # Removed 'username' and 'email'—now under nested 'user'
+        read_only_fields = ['created_at']
 
     def to_internal_value(self, data):
         # Handle flat input for email by mapping to nested 'user'
@@ -48,14 +50,20 @@ class ProfileSerializer(serializers.ModelSerializer):
         return representation
 
     def update(self, instance, validated_data):
-        user_data = validated_data.pop('user', {})  # Pop nested user data if provided
+        user_data = validated_data.pop('user', {})  # Handle nested user data
         if user_data:
-            # Update only writable User fields (e.g., email)
             instance.user.email = user_data.get('email', instance.user.email)
-            instance.user.save()  # Save User changes
-        # Update Profile fields
-        return super().update(instance, validated_data)
-    
+            instance.user.save()
+        # Handle file explicitly (multipart sends it as File object or empty)
+        file = validated_data.pop('file', None)
+        if file is not None:
+            instance.file = file
+        # Update remaining Profile fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 class BusinessProfileSerializer(ProfileSerializer):
     class Meta(ProfileSerializer.Meta):
