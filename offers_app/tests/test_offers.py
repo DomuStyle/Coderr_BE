@@ -1,34 +1,34 @@
+"""Test cases for offer-related API endpoints in Django REST Framework, covering happy and unhappy paths."""
+
 from django.urls import reverse
-from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth.models import User
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
 from profiles_app.models import Profile
 from offers_app.models import Offer, OfferDetail
-from rest_framework import status
 from datetime import datetime
 import pytz
 
-
 class OfferTestsHappy(APITestCase):
+    """Test cases for successful (happy path) scenarios in offer APIs."""
 
     def setUp(self):
-        # clear existing offers to ensure clean state (optional, but good for isolation)
+        # Clear existing offers to ensure test isolation.
         Offer.objects.all().delete()
         OfferDetail.objects.all().delete()
-        # set up test client
         self.client = APIClient()
-        # create business user with expected username/first_name/last_name
+        # Create business user with values matching expected assertions.
         self.user = User.objects.create_user(
-            username='jdoe',  # Matches expected in user_details assertions
+            username='jdoe',
             email='jdoe@business.de',
             password='testpass123'
         )
-        self.profile = self.user.profile  # Fetch auto-created Profile
+        self.profile = self.user.profile
         self.profile.type = 'business'
         self.profile.first_name = 'John'
         self.profile.last_name = 'Doe'
-        self.profile.save()  # Save updates
-        
-        # Create an offer with data matching test assertions
+        self.profile.save()
+        # Create an offer with data matching test assertions.
         self.offer = Offer.objects.create(
             user=self.user,
             title='Website Design',
@@ -36,14 +36,14 @@ class OfferTestsHappy(APITestCase):
             created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
             updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
         )
-        # Create 3 details with values to match assertions (revisions=2 for basic, delivery=7 for basic/min=7, features=['Basic Design'], etc.)
+        # Create details with values matching expected assertions.
         self.detail_basic = OfferDetail.objects.create(
             offer=self.offer,
             title='Basic',
-            revisions=2,  # Matches expected
-            delivery_time_in_days=7,  # Matches min_delivery_time=7
+            revisions=2,
+            delivery_time_in_days=7,
             price=100.00,
-            features=['Basic Design'],  # Matches expected
+            features=['Basic Design'],
             offer_type='basic'
         )
         self.detail_standard = OfferDetail.objects.create(
@@ -52,7 +52,7 @@ class OfferTestsHappy(APITestCase):
             revisions=5,
             delivery_time_in_days=10,
             price=200.00,
-            features=['Standard Design'],  # Matches expected
+            features=['Standard Design'],
             offer_type='standard'
         )
         self.detail_premium = OfferDetail.objects.create(
@@ -61,41 +61,34 @@ class OfferTestsHappy(APITestCase):
             revisions=10,
             delivery_time_in_days=14,
             price=500.00,
-            features=['Premium Design'],  # Matches expected
+            features=['Premium Design'],
             offer_type='premium'
         )
-
-        # authenticate the client
         self.client.force_authenticate(user=self.user)
 
     def test_get_offer_detail(self):
-        # test retrieving a single offer detail
+        """Test retrieving a single offer detail via the API."""
         detail = OfferDetail.objects.get(title='Basic', offer=self.offer)
-        url = reverse('offerdetail-detail', kwargs={'id': detail.id})  # Changed 'pk' to 'id'
+        url = reverse('offerdetail-detail', kwargs={'id': detail.id})
         response = self.client.get(url)
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response data
         expected_data = {
             'id': detail.id,
             'title': 'Basic',
             'revisions': 2,
             'delivery_time_in_days': 7,
-            'price': '100.00',  # Decimal fields serialize as strings
+            'price': '100.00',
             'features': ['Basic Design'],
             'offer_type': 'basic'
         }
         self.assertEqual(response.data, expected_data)
 
     def test_get_offers_paginated(self):
-        # test retrieving paginated list of offers
+        """Test retrieving a paginated list of offers."""
         url = reverse('offer-list')
         response = self.client.get(url)
-        # get actual detail IDs
         details = OfferDetail.objects.filter(offer=self.offer).order_by('id')
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response structure
         expected_data = {
             'count': 1,
             'next': None,
@@ -114,7 +107,7 @@ class OfferTestsHappy(APITestCase):
                         {'id': details[1].id, 'url': f'http://testserver{reverse("offerdetail-detail", kwargs={"id": details[1].id})}'},
                         {'id': details[2].id, 'url': f'http://testserver{reverse("offerdetail-detail", kwargs={"id": details[2].id})}'}
                     ],
-                    'min_price': '100.00',  # DecimalField serializes as string
+                    'min_price': '100.00',
                     'min_delivery_time': 7,
                     'user_details': {
                         'first_name': 'John',
@@ -127,7 +120,7 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(response.data, expected_data)
 
     def test_get_offers_filter_creator(self):
-        # test filtering by creator_id
+        """Test filtering offers by creator ID."""
         url = reverse('offer-list') + f'?creator_id={self.user.id}'
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -135,30 +128,23 @@ class OfferTestsHappy(APITestCase):
         self.assertEqual(response.data['results'][0]['user'], self.user.id)
 
     def test_get_offers_filter_min_price(self):
-        # test filtering by min_price
+        """Test filtering offers by minimum price."""
         url = reverse('offer-list') + '?min_price=150'
         response = self.client.get(url)
-        # debug: print all offers
-        # print(Offer.objects.all().values('id', 'title', 'user__username'))
-        # print(response.data)
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert no offers with min_price >= 150
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['results']), 0)
 
     def test_get_offers_search(self):
-        # test searching by title
+        """Test searching offers by title."""
         url = reverse('offer-list') + '?search=Website'
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['title'], 'Website Design')
 
-    # create offer tests
-
     def test_create_offer_success(self):
-        # test creating an offer as business user with 3 details
+        """Test creating an offer as a business user with exactly three details."""
         url = reverse('offer-list')
         data = {
             'title': 'Grafikdesign-Paket',
@@ -192,19 +178,15 @@ class OfferTestsHappy(APITestCase):
             ]
         }
         response = self.client.post(url, data, format='json')
-        # assert response status code is 201
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        # assert response structure
         self.assertEqual(response.data['title'], 'Grafikdesign-Paket')
         self.assertEqual(len(response.data['details']), 3)
         self.assertEqual(response.data['details'][0]['offer_type'], 'basic')
         self.assertEqual(response.data['details'][1]['offer_type'], 'standard')
         self.assertEqual(response.data['details'][2]['offer_type'], 'premium')
 
-    # patch offer tests
-
     def test_update_offer_success(self):
-    # test updating an offer by owner
+        """Test updating an offer by its owner."""
         url = reverse('offer-detail', kwargs={'pk': self.offer.id})
         data = {
             'title': 'Updated Website Design',
@@ -220,46 +202,40 @@ class OfferTestsHappy(APITestCase):
             ]
         }
         response = self.client.patch(url, data, format='json')
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert updated fields
         self.assertEqual(response.data['title'], 'Updated Website Design')
         self.assertEqual(response.data['details'][0]['title'], 'Updated Basic')
         self.assertEqual(response.data['details'][0]['revisions'], 3)
         self.assertEqual(response.data['details'][0]['delivery_time_in_days'], 6)
         self.assertEqual(response.data['details'][0]['price'], '120.00')
         self.assertEqual(response.data['details'][0]['features'], ['Updated Basic Design'])
-        # assert unchanged fields
         self.assertEqual(response.data['description'], 'Professionelles Website-Design...')
         self.assertEqual(response.data['details'][1]['title'], 'Standard')
 
-    # delete offer tests
-
     def test_delete_offer_success(self):
+        """Test deleting an offer by its owner."""
         url = reverse('offer-detail', kwargs={'pk': self.offer.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Offer.objects.filter(id=self.offer.id).exists())
 
-
-class OfferTestsUnappy(APITestCase):
+class OfferTestsUnhappy(APITestCase):
+    """Test cases for error (unhappy path) scenarios in offer APIs."""
 
     def setUp(self):
-        # clear existing offers to ensure clean state
+        # Clear existing offers to ensure test isolation.
         Offer.objects.all().delete()
         OfferDetail.objects.all().delete()
-        # set up test client and user
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='jdoe',  # Matches any expected in unhappy tests
+            username='jdoe',
             email='jdoe@business.de',
             password='testpass123'
         )
-        self.profile = self.user.profile  # Fetch auto-created
+        self.profile = self.user.profile
         self.profile.type = 'business'
         self.profile.save()
-
-        # Create an offer with data for unhappy tests
+        # Create an offer with data for unhappy tests.
         self.offer = Offer.objects.create(
             user=self.user,
             title='Website Design',
@@ -267,7 +243,6 @@ class OfferTestsUnappy(APITestCase):
             created_at=datetime(2024, 9, 25, 10, 0, 0, tzinfo=pytz.UTC),
             updated_at=datetime(2024, 9, 28, 12, 0, 0, tzinfo=pytz.UTC)
         )
-        # Create at least one detail (from commented setUp)
         OfferDetail.objects.create(
             offer=self.offer,
             title='Basic',
@@ -277,8 +252,7 @@ class OfferTestsUnappy(APITestCase):
             features=['Basic Design'],
             offer_type='basic'
         )
-
-        # create another user for non-owner tests
+        # Create another user for non-owner tests.
         self.user2 = User.objects.create_user(
             username='jane',
             email='jane@business.de',
@@ -287,24 +261,18 @@ class OfferTestsUnappy(APITestCase):
         self.profile2 = self.user2.profile
         self.profile2.type = 'business'
         self.profile2.save()
-
-        # authenticate client (optional, as endpoint doesn't require auth, but for consistency)
         self.client.force_authenticate(user=self.user)
 
     def test_get_offers_invalid_params(self):
-        # test invalid query parameters
+        """Test handling invalid query parameters in offer list."""
         url = reverse('offer-list') + '?min_price=invalid'
         response = self.client.get(url)
-        # assert response status code is 400
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # assert error message
         self.assertEqual(response.data, {'min_price': 'Invalid value'})
 
-    # create offer tests
-
     def test_create_offer_non_business(self):
-        # test creating offer as non-business user
-        Profile.objects.filter(user=self.user).update(type='customer')  # change to non-business
+        """Test creating an offer as a non-business user."""
+        Profile.objects.filter(user=self.user).update(type='customer')
         url = reverse('offer-list')
         data = {
             'title': 'Grafikdesign-Paket',
@@ -337,13 +305,11 @@ class OfferTestsUnappy(APITestCase):
             ]
         }
         response = self.client.post(url, data, format='json')
-        # assert response status code is 403
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        # assert error message
         self.assertEqual(response.data['error'], 'Only business users can create offers')
 
     def test_create_offer_insufficient_details(self):
-        # test creating offer with fewer than 3 details
+        """Test creating an offer with fewer than three details."""
         url = reverse('offer-list')
         data = {
             'title': 'Grafikdesign-Paket',
@@ -360,51 +326,37 @@ class OfferTestsUnappy(APITestCase):
             ]
         }
         response = self.client.post(url, data, format='json')
-        # assert response status code is 400
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # assert error message
         self.assertIn('Exactly 3 details are required.', str(response.data['details']))
 
     def test_create_offer_unauthenticated(self):
+        """Test creating an offer without authentication."""
         self.client.force_authenticate(user=None)
         url = reverse('offer-list')
         response = self.client.post(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    # patch offer tests
-
     def test_update_offer_non_owner(self):
-        # create a business user for owning the offer
+        """Test updating an offer as a non-owner."""
         business_user = User.objects.create_user(username='business', password='pass', email='business@example.com')
-        # get the existing profile (auto-created by signal) and set its type to business
         business_profile = Profile.objects.get(user=business_user)
         business_profile.type = 'business'
         business_profile.save()
-        # create a non-owner user
         non_owner = User.objects.create_user(username='nonowner', password='pass', email='nonowner@example.com')
-        # get the existing profile for non-owner and set its type to customer
         non_owner_profile = Profile.objects.get(user=non_owner)
         non_owner_profile.type = 'customer'
         non_owner_profile.save()
-        # create an offer owned by the business user
         offer = Offer.objects.create(user=business_user, title='Test Offer', description='Test Desc')
-        # get the url for the specific offer detail view
         url = reverse('offer-detail', kwargs={'pk': offer.id})
-        # prepare patch data to attempt update
         data = {'title': 'Updated Title'}
-        # authenticate as the non-owner user
         self.client.force_authenticate(user=non_owner)
-        # send patch request as non-owner
         response = self.client.patch(url, data, format='json')
-        # assert the status code is 403 forbidden
         self.assertEqual(response.status_code, 403)
-        # assert the error message in 'detail' key matches 'permission denied'
         self.assertEqual(response.data['detail'], 'Permission denied')
 
     def test_update_offer_not_found(self):
-        # test updating non-existent offer
+        """Test updating a non-existent offer."""
         url = reverse('offer-detail', kwargs={'pk': 999})
         data = {'title': 'Updated'}
         response = self.client.patch(url, data, format='json')
-        # assert response status code is 404
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

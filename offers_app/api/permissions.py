@@ -1,26 +1,29 @@
-# from rest_framework import permissions
+"""Custom permissions for Django REST Framework to handle ownership-based access control."""
 
-# class IsOfferOwnerOrReadOnly(permissions.BasePermission):  # define the custom permission class with the original name to match imports
-#     message = 'Permission denied'  
-#     def has_object_permission(self, request, view, obj):  # override the has_object_permission method to check permissions
-#         if request.method in permissions.SAFE_METHODS:  #  allow read-only access (get, head, options) for all users
-#             return True  
-#         return obj.user == request.user  # for unsafe methods (patch, delete), check if the object's user matches the request user
+from rest_framework import permissions
 
-from rest_framework import permissions 
 
-class IsOfferOwnerOrReadOnly(permissions.BasePermission):  #define the custom permission class with the original name to match imports
-    message = 'Permission denied' 
+class IsOfferOwnerOrReadOnly(permissions.BasePermission):
+    """Custom permission to allow owners to edit offers while permitting read-only access to others."""
 
-    def has_object_permission(self, request, view, obj):  # override the has_object_permission method to check permissions
-        if request.method in permissions.SAFE_METHODS:  # allow read-only access (get, head, options) for all users
-            return True  # return true for safe methods
-        return obj.user == request.user  # for unsafe methods (patch, delete), check if the object's user matches the request user
-
-class IsOfferDetailOwnerOrReadOnly(permissions.BasePermission):
     message = 'Permission denied'
 
     def has_object_permission(self, request, view, obj):
+        # Check if the request method is safe (e.g., GET, HEAD, OPTIONS).
         if request.method in permissions.SAFE_METHODS:
             return True
-        return obj.offer.user == request.user  # check the parent offer's user for ownership
+        # For unsafe methods (e.g., PATCH, DELETE), verify ownership.
+        return obj.user == request.user
+
+
+class IsOfferDetailOwnerOrReadOnly(permissions.BasePermission):
+    """Custom permission to allow owners to edit offer details while permitting read-only access to others."""
+
+    message = 'Permission denied'
+
+    def has_object_permission(self, request, view, obj):
+        # Check if the request method is safe (e.g., GET, HEAD, OPTIONS).
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # For unsafe methods, verify ownership through the parent offer.
+        return obj.offer.user == request.user
