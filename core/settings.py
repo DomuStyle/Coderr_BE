@@ -15,8 +15,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MEDIA_URL = '/profile_pics/'  # Matches your upload path; can be '/media/' if upload_to='profile_pics'
-MEDIA_ROOT = BASE_DIR / 'profile_pics'  # Directory where images are saved
+MEDIA_URL = '/profile_pics/' 
+MEDIA_ROOT = BASE_DIR / 'profile_pics'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -160,10 +160,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',  # for tests
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,  # Your default
-    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # Enables ?page_size override
-    'MAX_PAGE_SIZE': 10  # Optional: Limit max override to prevent abuse (e.g., ?page_size=1000)
+    'PAGE_SIZE': 10, 
+    'PAGE_SIZE_QUERY_PARAM': 'page_size', 
+    'MAX_PAGE_SIZE': 10 
 }
