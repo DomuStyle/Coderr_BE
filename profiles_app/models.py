@@ -17,7 +17,7 @@ class Profile(models.Model):
     description = models.TextField(default='')
     working_hours = models.CharField(max_length=50, default='')
     type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='customer')
-    file = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    file = models.ImageField(upload_to='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

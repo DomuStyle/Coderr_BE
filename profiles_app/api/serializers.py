@@ -34,14 +34,23 @@ class ProfileSerializer(serializers.ModelSerializer):
             user_data['email'] = data.pop('email')  # Move email to nested
             data['user'] = user_data
         return super().to_internal_value(data)  # Proceed with standard validation
-    
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         non_nullable_fields = ['first_name', 'last_name', 'location', 'tel', 'description', 'working_hours']
         for field in non_nullable_fields:
             if representation[field] is None:
                 representation[field] = ''
-        representation['file'] = instance.file.name if instance.file else None
+        # Fixed: Return full URL for file if exists, else null
+        if instance.file:
+            # Use request from context to build absolute URL (if request available, else relative)
+            request = self.context.get('request', None)
+            if request is not None:
+                representation['file'] = request.build_absolute_uri(instance.file.url)
+            else:
+                representation['file'] = instance.file.url  # Relative URL if no request context
+        else:
+            representation['file'] = None
         # Flatten nested user fields for response (to match docs structure)
         user_data = representation.pop('user')
         representation['user'] = instance.user.id  # Add user ID as top-level
