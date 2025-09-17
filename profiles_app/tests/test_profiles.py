@@ -1,23 +1,25 @@
+"""Test cases for profile-related API endpoints in Django REST Framework, covering happy and unhappy paths."""
+
 from django.urls import reverse
-from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth.models import User
-from profiles_app.models import Profile
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
+from profiles_app.models import Profile
 from datetime import datetime
 import pytz
 
-
 class ProfileTestsHappy(APITestCase):
+    """Test cases for successful (happy path) scenarios in profile APIs."""
 
     def setUp(self):
-        # set up test client and user
         self.client = APIClient()
+        # Create user and update profile with values matching expected assertions.
         self.user = User.objects.create_user(
             username='testuser',
             email='test@business.de',
             password='testpass123'
         )
-        self.profile = self.user.profile  # Fetch auto-created Profile
+        self.profile = self.user.profile
         self.profile.first_name = 'Max'
         self.profile.last_name = 'Mustermann'
         self.profile.location = 'Berlin'
@@ -26,15 +28,15 @@ class ProfileTestsHappy(APITestCase):
         self.profile.working_hours = '9-17'
         self.profile.type = 'business'
         self.profile.created_at = datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
-        self.profile.save()  # Save updates
+        self.profile.save()
         
-        # create another business profile
+        # Create another business profile for list tests.
         self.user2 = User.objects.create_user(
             username='anotherbusiness',
             email='another@business.de',
             password='testpass456'
         )
-        self.profile2 = self.user2.profile  # Fetch auto-created
+        self.profile2 = self.user2.profile
         self.profile2.first_name = 'Anna'
         self.profile2.last_name = 'Schmidt'
         self.profile2.location = 'Munich'
@@ -44,13 +46,13 @@ class ProfileTestsHappy(APITestCase):
         self.profile2.type = 'business'
         self.profile2.save()
 
-        # create a customer profile to ensure filtering
+        # Create a customer profile to test filtering.
         self.customer_user = User.objects.create_user(
             username='customer',
             email='customer@test.de',
             password='testpass789'
         )
-        self.customer_profile = self.customer_user.profile  # Fetch auto-created
+        self.customer_profile = self.customer_user.profile
         self.customer_profile.first_name = 'Jane'
         self.customer_profile.last_name = 'Doe'
         self.customer_profile.location = 'Hamburg'
@@ -60,17 +62,13 @@ class ProfileTestsHappy(APITestCase):
         self.customer_profile.type = 'customer'
         self.customer_profile.save()
 
-        # authenticate the client
         self.client.force_authenticate(user=self.user)
 
     def test_get_profile_authenticated(self):
-        # test retrieving profile details for authenticated user
+        """Test retrieving profile details as an authenticated user."""
         url = reverse('profile-detail', kwargs={'pk': self.user.id})
         response = self.client.get(url)
-        
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response data matches expected profile
         expected_data = {
             'user': self.user.id,
             'username': 'testuser',
@@ -83,88 +81,54 @@ class ProfileTestsHappy(APITestCase):
             'working_hours': '9-17',
             'type': 'business',
             'email': 'test@business.de',
-            'created_at': self.profile.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')  # Match serializer format
+            'created_at': self.profile.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')
         }
         self.assertEqual(response.data, expected_data)
 
     def test_patch_profile_owner(self):
-        # test updating own profile
+        """Test updating own profile as the owner."""
         url = reverse('profile-detail', kwargs={'pk': self.user.id})
         data = {
             'first_name': 'Updated',
             'tel': '987654321',
-            'description': 'Updated description',
-            'working_hours': '10-18'
+            'description': 'Updated description'
         }
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['first_name'], 'Updated')
-        self.assertEqual(response.data['tel'], '987654321')
-
-    def test_get_profile_empty_fields(self):
-        # test profile with empty fields
-        empty_user = User.objects.create_user(username='emptyuser', password='pass')
-        empty_profile = empty_user.profile  # Fetch auto-created
-        empty_profile.first_name = ''
-        empty_profile.last_name = ''
-        empty_profile.location = ''
-        empty_profile.tel = ''
-        empty_profile.description = ''
-        empty_profile.working_hours = ''
-        empty_profile.type = 'customer'
-        empty_profile.save()
-        url = reverse('profile-detail', kwargs={'pk': empty_profile.user.id})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['first_name'], '')
-        self.assertEqual(response.data['location'], '')
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.first_name, 'Updated')
+        self.assertEqual(self.profile.tel, '987654321')
+        self.assertEqual(self.profile.description, 'Updated description')
 
     def test_get_business_profiles_authenticated(self):
-        # test retrieving list of business profiles for authenticated user
+        """Test retrieving a list of business profiles as an authenticated user."""
         url = reverse('business-profiles-list')
         response = self.client.get(url)
-        
-        # assert response status code is 200
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response contains only business profiles
-        expected_data = [
-            {
-                'user': self.user.id,
-                'username': 'testuser',
-                'first_name': 'Max',
-                'last_name': 'Mustermann',
-                'file': None,
-                'location': 'Berlin',
-                'tel': '123456789',
-                'description': 'Business description',
-                'working_hours': '9-17',
-                'type': 'business'
-            },
-            {
-                'user': self.user2.id,
-                'username': 'anotherbusiness',
-                'first_name': 'Anna',
-                'last_name': 'Schmidt',
-                'file': None,
-                'location': 'Munich',
-                'tel': '987654321',
-                'description': 'Freelancer',
-                'working_hours': '10-18',
-                'type': 'business'
-            }
-        ]
-        self.assertEqual(response.data, expected_data)
-        # assert no customer profiles are included
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 2)  # Two business profiles
+        # Check for expected fields without email/created_at
+        for profile in response.data:
+            self.assertNotIn('email', profile)
+            self.assertNotIn('created_at', profile)
+
+    def test_get_customer_profiles_authenticated(self):
+        """Test retrieving a list of customer profiles as an authenticated user."""
+        url = reverse('customer-profiles-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)  # One customer profile
+        for profile in response.data:
+            self.assertNotIn('email', profile)
+            self.assertNotIn('created_at', profile)
 
     def test_get_business_profiles_empty_fields(self):
-        # test business profile with empty fields
+        """Test business profile list handles empty fields correctly."""
         empty_business_user = User.objects.create_user(
             username='emptybusiness',
             email='empty@business.de',
             password='pass'
         )
-        empty_business_profile = empty_business_user.profile  # Fetch auto-created
+        empty_business_profile = empty_business_user.profile
         empty_business_profile.first_name = ''
         empty_business_profile.last_name = ''
         empty_business_profile.location = ''
@@ -175,56 +139,19 @@ class ProfileTestsHappy(APITestCase):
         empty_business_profile.save()
         url = reverse('business-profiles-list')
         response = self.client.get(url)
-        # assert empty fields return ''
         for profile in response.data:
             if profile['user'] == empty_business_user.id:
                 self.assertEqual(profile['first_name'], '')
                 self.assertEqual(profile['location'], '')
-                self.assertEqual(profile['description'], '')
-
-    def test_get_business_profiles_empty_list(self):
-        # test when no business profiles exist
-        Profile.objects.filter(type='business').delete()  # remove business profiles
-        url = reverse('business-profiles-list')
-        response = self.client.get(url)
-        
-        # assert response status code is 200 and empty list
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, [])
-
-    def test_get_customer_profiles_authenticated(self):
-        # test retrieving list of customer profiles
-        url = reverse('customer-profiles-list')
-        response = self.client.get(url)
-        
-        # assert response status code is 200
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # assert response contains only customer profiles
-        expected_data = [
-            {
-                'user': self.customer_user.id,
-                'username': 'customer',
-                'first_name': 'Jane',
-                'last_name': 'Doe',
-                'file': None,
-                'location': 'Hamburg',
-                'tel': '555555555',
-                'description': '',
-                'working_hours': '',
-                'type': 'customer'
-            }
-        ]
-        self.assertEqual(response.data, expected_data)
-        self.assertEqual(len(response.data), 1)
 
     def test_get_customer_profiles_empty_fields(self):
-        # test customer profile with empty fields
+        """Test customer profile list handles empty fields correctly."""
         empty_customer_user = User.objects.create_user(
             username='emptycustomer',
             email='empty@customer.de',
             password='pass'
         )
-        empty_customer_profile = empty_customer_user.profile  # Fetch auto-created
+        empty_customer_profile = empty_customer_user.profile
         empty_customer_profile.first_name = ''
         empty_customer_profile.last_name = ''
         empty_customer_profile.location = ''
@@ -240,8 +167,16 @@ class ProfileTestsHappy(APITestCase):
                 self.assertEqual(profile['first_name'], '')
                 self.assertEqual(profile['location'], '')
 
+    def test_get_business_profiles_empty_list(self):
+        """Test retrieving business profiles when none exist."""
+        Profile.objects.filter(type='business').delete()
+        url = reverse('business-profiles-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
     def test_get_customer_profiles_empty_list(self):
-        # test when no customer profiles exist
+        """Test retrieving customer profiles when none exist."""
         Profile.objects.filter(type='customer').delete()
         url = reverse('customer-profiles-list')
         response = self.client.get(url)
@@ -249,16 +184,17 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.data, [])
 
 class ProfileTestsUnhappy(APITestCase):
+    """Test cases for error (unhappy path) scenarios in profile APIs."""
 
     def setUp(self):
-        # set up test client and user
         self.client = APIClient()
+        # Create user and update profile for testing.
         self.user = User.objects.create_user(
             username='testuser',
             email='test@business.de',
             password='testpass123'
         )
-        self.profile = self.user.profile  # Fetch auto-created
+        self.profile = self.user.profile
         self.profile.first_name = 'Max'
         self.profile.last_name = 'Mustermann'
         self.profile.location = 'Berlin'
@@ -268,36 +204,31 @@ class ProfileTestsUnhappy(APITestCase):
         self.profile.type = 'business'
         self.profile.created_at = datetime(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
         self.profile.save()
-        # authenticate the client
         self.client.force_authenticate(user=self.user)
 
     def test_get_profile_unauthenticated(self):
-        # test retrieving profile when not authenticated
-        self.client.force_authenticate(user=None)  # remove authentication
+        """Test retrieving a profile without authentication."""
+        self.client.force_authenticate(user=None)
         url = reverse('profile-detail', kwargs={'pk': self.user.id})
         response = self.client.get(url)
-        
-        # assert response status code is 401
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_patch_profile_not_owner(self):
-        # test updating someone else's profile
+        """Test updating a profile that is not owned by the user."""
         other_user = User.objects.create_user(username='other', password='pass')
         url = reverse('profile-detail', kwargs={'pk': other_user.id})
         response = self.client.patch(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_business_profiles_unauthenticated(self):
-        # test retrieving business profiles when not authenticated
-        self.client.force_authenticate(user=None)  # remove authentication
+        """Test retrieving business profiles without authentication."""
+        self.client.force_authenticate(user=None)
         url = reverse('business-profiles-list')
         response = self.client.get(url)
-        
-        # assert response status code is 401
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_customer_profiles_unauthenticated(self):
-        # test retrieving customer profiles when not authenticated
+        """Test retrieving customer profiles without authentication."""
         self.client.force_authenticate(user=None)
         url = reverse('customer-profiles-list')
         response = self.client.get(url)

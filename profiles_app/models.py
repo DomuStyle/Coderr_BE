@@ -1,14 +1,15 @@
-# # standard bib imports
+"""Django model for user profiles in the profiles_app."""
+
 from django.db import models
 from django.contrib.auth.models import User
 
-
 class Profile(models.Model):
+    """Stores additional user information such as name, contact details, and type."""
+    # Define choices for user types.
     USER_TYPE_CHOICES = (
         ('business', 'Business'),
         ('customer', 'Customer'),
     )
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     first_name = models.CharField(max_length=50, default='')
     last_name = models.CharField(max_length=50, default='')
@@ -22,8 +23,6 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
-
-
 
 
 

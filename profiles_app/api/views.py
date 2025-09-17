@@ -1,3 +1,5 @@
+"""API views for managing profiles in Django REST Framework, including detail retrieval, updates, and lists by type."""
+
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -7,16 +9,14 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from profiles_app.models import Profile
 from .serializers import ProfileSerializer, BusinessProfileSerializer, CustomerProfileSerializer
 
-
 class ProfileDetailView(APIView):
-    # require authentication
+    """View for retrieving and updating a specific profile."""
     permission_classes = [IsAuthenticated]
-    # support JSON and multipart for PATCH with file uploads
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
+
     def get(self, request, pk):
+        """Retrieve a profile by user ID."""
         try:
-            # fetch profile by user ID
             profile = Profile.objects.get(user__id=pk)
             serializer = ProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -24,11 +24,11 @@ class ProfileDetailView(APIView):
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def patch(self, request, pk):
-        # ensure user can only edit their own profile
+        """Update a profile, restricted to the owner."""
+        # Ensure only the profile owner can perform updates.
         if request.user.id != pk:
             return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         try:
-            # fetch and update profile
             profile = Profile.objects.get(user__id=pk)
             serializer = ProfileSerializer(profile, data=request.data, partial=True)
             if serializer.is_valid():
@@ -38,17 +38,15 @@ class ProfileDetailView(APIView):
         except Profile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
 class BusinessProfileListView(ListAPIView):
-    # require authentication
+    """View for listing business profiles."""
     permission_classes = [IsAuthenticated]
     serializer_class = BusinessProfileSerializer
     queryset = Profile.objects.filter(type='business').select_related('user')
     pagination_class = None
 
-
 class CustomerProfileListView(ListAPIView):
-    # require authentication
+    """View for listing customer profiles."""
     permission_classes = [IsAuthenticated]
     serializer_class = CustomerProfileSerializer
     queryset = Profile.objects.filter(type='customer').select_related('user')
