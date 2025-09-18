@@ -1,24 +1,24 @@
-# standard bib imports
+"""Test cases for the registration API endpoint in Django REST Framework, covering happy and unhappy paths."""
+
 from django.urls import reverse
 from django.contrib.auth.models import User
-
-# third party imports
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.authtoken.models import Token
-
-# local imports
 from user_auth_app.models import UserProfile
 
 
 class UserProfileAPItestCaseHappy(APITestCase):
+    """Test cases for successful registration scenarios."""
 
     def setUp(self):
+        """Set up a test client for registration testing."""
+        # Initialize a test client for API requests.
         self.client = APIClient()
 
     def test_registration_successful(self):
+        """Test successful registration with valid data."""
         url = reverse('registration')
-
         data = {
             "username": "exampleUsername",
             "email": "example@mail.de",
@@ -26,30 +26,27 @@ class UserProfileAPItestCaseHappy(APITestCase):
             "repeated_password": "examplePassword",
             "type": "customer"
         }
-    
         response = self.client.post(url, data, format='json')
-
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
-        
-class UserProfileAPItestCaseUnhappy(APITestCase):
-    
-    def test_registration_fields_missing(self):
-        url = reverse('registration')
 
+
+class UserProfileAPItestCaseUnhappy(APITestCase):
+    """Test cases for failed registration scenarios."""
+
+    def test_registration_fields_missing(self):
+        """Test registration failure with missing required fields."""
+        url = reverse('registration')
         data = {
             "username": "exampleUsername",
             "email": "example@mail.de",
             "type": "customer"
         }
-    
         response = self.client.post(url, data, format='json')
-
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_registration_passwords_dont_match(self):
+        """Test registration failure with mismatched passwords."""
         url = reverse('registration')
-
         data = {
             "username": "exampleUsername",
             "email": "example@mail.de",
@@ -57,7 +54,5 @@ class UserProfileAPItestCaseUnhappy(APITestCase):
             "repeated_password": "differentexamplePassword",
             "type": "customer"
         }
-    
         response = self.client.post(url, data, format='json')
-
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
