@@ -1,3 +1,5 @@
+"""API views for statistical data in the stats_app using Django REST Framework."""
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,10 +10,12 @@ from offers_app.models import Offer
 from django.db.models import Avg
 
 class BaseInfoView(APIView):
-    permission_classes = [AllowAny]  # No permissions, public per docu
+    """View for retrieving aggregated statistics like review counts and ratings, accessible publicly."""
+    permission_classes = [AllowAny]
     authentication_classes = []
-    
+
     def get(self, request):
+        """Retrieve counts of reviews, business profiles, and offers, and the average review rating."""
         try:
             review_count = Review.objects.count()
             average_rating = Review.objects.aggregate(avg=Avg('rating'))['avg'] or 0.0
