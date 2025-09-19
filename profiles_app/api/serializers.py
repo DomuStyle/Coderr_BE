@@ -28,14 +28,25 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at']
 
+    # def to_internal_value(self, data):
+    #     """Handle flat email input by mapping it to nested user data."""
+    #     if 'email' in data:
+    #         user_data = data.get('user', {})
+    #         user_data['email'] = data.pop('email')
+    #         data['user'] = user_data
+    #     return super().to_internal_value(data)
+
     def to_internal_value(self, data):
         """Handle flat email input by mapping it to nested user data."""
+        # Convert to a mutable dict and flatten any list values (common in multipart/form-data)
+        data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in dict(data).items()}
+    
         if 'email' in data:
             user_data = data.get('user', {})
             user_data['email'] = data.pop('email')
             data['user'] = user_data
         return super().to_internal_value(data)
-
+    
     def to_representation(self, instance):
         """Flatten user fields and convert file field to an absolute URL if available."""
         # Set non-nullable fields to empty strings if None.

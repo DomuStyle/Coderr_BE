@@ -183,6 +183,49 @@ class ProfileTestsHappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
 
+    def test_patch_customer_profile_multipart(self):
+        """Test updating a customer profile with multipart/form-data."""
+        # Authenticate as the customer user
+        self.client.force_authenticate(user=self.customer_user)
+        url = reverse('profile-detail', kwargs={'pk': self.customer_user.id})
+        data = {
+            'first_name': ['UpdatedCustomer'],  # Simulate frontend sending list values
+            'last_name': ['Test'],
+            'email': ['newcustomer@business.de']
+        }
+        response = self.client.patch(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.customer_user.refresh_from_db()
+        self.customer_profile.refresh_from_db()
+        self.assertEqual(self.customer_profile.first_name, 'UpdatedCustomer')
+        self.assertEqual(self.customer_profile.last_name, 'Test')
+        self.assertEqual(self.customer_user.email, 'newcustomer@business.de')
+
+    def test_patch_business_profile_multipart(self):
+        """Test updating a business profile with multipart/form-data."""
+        url = reverse('profile-detail', kwargs={'pk': self.user.id})
+        data = {
+            'first_name': ['UpdatedBusiness'],
+            'last_name': ['Test'],
+            'email': ['newbusiness@business.de'],
+            'location': ['Munich'],
+            'tel': ['987654321'],
+            'description': ['Updated business description'],
+            'working_hours': ['10-18']
+        }
+        response = self.client.patch(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.first_name, 'UpdatedBusiness')
+        self.assertEqual(self.profile.last_name, 'Test')
+        self.assertEqual(self.user.email, 'newbusiness@business.de')
+        self.assertEqual(self.profile.location, 'Munich')
+        self.assertEqual(self.profile.tel, '987654321')
+        self.assertEqual(self.profile.description, 'Updated business description')
+        self.assertEqual(self.profile.working_hours, '10-18')
+
+
 class ProfileTestsUnhappy(APITestCase):
     """Test cases for error (unhappy path) scenarios in profile APIs."""
 
@@ -233,3 +276,32 @@ class ProfileTestsUnhappy(APITestCase):
         url = reverse('customer-profiles-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_patch_profile_exceeds_max_length_multipart(self):
+        """Test patching a profile with fields exceeding max length using multipart/form-data."""
+        self.client.force_authenticate(user=self.user)
+        url = reverse('profile-detail', kwargs={'pk': self.user.id})
+        data = {
+            'first_name': ['A' * 51],  # Exceeds max_length=50
+            'tel': ['123456789012345678901']  # Exceeds max_length=20
+        }
+        response = self.client.patch(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('first_name', response.data)
+        self.assertIn('tel', response.data)
+        self.assertEqual(response.data['first_name'], ['Ensure this field has no more than 50 characters.'])
+        self.assertEqual(response.data['tel'], ['Ensure this field has no more than 20 characters.'])
+
+    def test_patch_profile_invalid_file_multipart(self):
+        """Test patching a profile with an invalid file type using multipart/form-data."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_authenticate(user=self.user)
+        url = reverse('profile-detail', kwargs={'pk': self.user.id})
+        data = {
+            'first_name': ['ValidName'],
+            'file': SimpleUploadedFile("test.txt", b"not an image", content_type="text/plain")  # Invalid file type
+        }
+        response = self.client.patch(url, data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('file', response.data)
+        self.assertEqual(response.data['file'], ['Upload a valid image. The file you uploaded was either not an image or a corrupted image.'])
