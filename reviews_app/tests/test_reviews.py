@@ -118,7 +118,7 @@ class ReviewTestsHappy(APITestCase):
         """Test creating a review as an authenticated customer."""
         url = reverse('review-list')
         data = {
-            'business_user_id': self.business_user1.id,
+            'business_user': self.business_user1.id,
             'rating': 5,
             'description': 'Excellent service!'
         }
@@ -201,7 +201,7 @@ class ReviewTestsUnhappy(APITestCase):
     def test_create_review_invalid_rating(self):
         """Test creating a review with an invalid rating value."""
         url = reverse('review-list')
-        data = {'business_user_id': self.business_user.id, 'rating': 0, 'description': 'Test'}
+        data = {'business_user': self.business_user.id, 'rating': 0, 'description': 'Test'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Rating must be between 1 and 5.', str(response.data))
@@ -209,7 +209,7 @@ class ReviewTestsUnhappy(APITestCase):
     def test_create_review_invalid_business_user(self):
         """Test creating a review with an invalid business user ID."""
         url = reverse('review-list')
-        data = {'business_user_id': 999, 'rating': 5, 'description': 'Test'}
+        data = {'business_user': 999, 'rating': 5, 'description': 'Test'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Business user not found or not a business profile.', str(response.data))
@@ -218,7 +218,7 @@ class ReviewTestsUnhappy(APITestCase):
         """Test creating a review without authentication."""
         self.client.force_authenticate(user=None)
         url = reverse('review-list')
-        data = {'business_user_id': 1, 'rating': 5, 'description': 'Test'}
+        data = {'business_user': 1, 'rating': 5, 'description': 'Test'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -226,7 +226,7 @@ class ReviewTestsUnhappy(APITestCase):
         """Test creating a review as a non-customer user."""
         Profile.objects.filter(user=self.reviewer).update(type='business')
         url = reverse('review-list')
-        data = {'business_user_id': self.business_user.id, 'rating': 5, 'description': 'Test'}
+        data = {'business_user': self.business_user.id, 'rating': 5, 'description': 'Test'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -240,7 +240,7 @@ class ReviewTestsUnhappy(APITestCase):
         )
         url = reverse('review-list')
         data = {
-            'business_user_id': self.business_user.id,
+            'business_user': self.business_user.id,
             'rating': 5,
             'description': 'Duplicate'
         }
