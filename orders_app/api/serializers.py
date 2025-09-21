@@ -23,12 +23,6 @@ class OrderCreateSerializer(serializers.Serializer):
     """Serializes input data for creating new orders based on an offer detail."""
     offer_detail_id = serializers.IntegerField(required=True)
 
-    # def validate_offer_detail_id(self, value):
-    #     """Validate that the provided offer detail ID exists."""
-    #     if not OfferDetail.objects.filter(id=value).exists():
-    #         raise serializers.ValidationError('Offer detail not found.')
-    #     return value
-
     def validate_offer_detail_id(self, value):
         """Validate that the provided offer detail ID exists and has a title."""
         try:
