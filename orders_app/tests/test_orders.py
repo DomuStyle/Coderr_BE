@@ -104,12 +104,12 @@ class OrderTestsHappy(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['customer_user'], self.customer_user.id)
         self.assertEqual(response.data['business_user'], self.business_user.id)
-        self.assertEqual(response.data['title'], 'Logo Design')
+        self.assertEqual(response.data['title'], 'Basic')
         self.assertEqual(response.data['status'], 'in_progress')
 
     def test_update_order_status_success(self):
         """Test updating an order's status as the business user."""
-        self.client.force_authenticate(user=self.business_user)  # Switch to business user for update.
+        self.client.force_authenticate(user=self.business_user) 
         old_updated_at = self.order.updated_at
         url = reverse('order-detail', kwargs={'pk': self.order.id})
         data = {'status': 'completed'}

@@ -23,19 +23,29 @@ class OrderCreateSerializer(serializers.Serializer):
     """Serializes input data for creating new orders based on an offer detail."""
     offer_detail_id = serializers.IntegerField(required=True)
 
-    def validate_offer_detail_id(self, value):
-        """Validate that the provided offer detail ID exists."""
-        if not OfferDetail.objects.filter(id=value).exists():
-            raise serializers.ValidationError('Offer detail not found.')
-        return value
+    # def validate_offer_detail_id(self, value):
+    #     """Validate that the provided offer detail ID exists."""
+    #     if not OfferDetail.objects.filter(id=value).exists():
+    #         raise serializers.ValidationError('Offer detail not found.')
+    #     return value
 
+    def validate_offer_detail_id(self, value):
+        """Validate that the provided offer detail ID exists and has a title."""
+        try:
+            offer_detail = OfferDetail.objects.get(id=value)
+        except OfferDetail.DoesNotExist:
+            raise serializers.ValidationError('Offer detail not found.')
+        if not offer_detail.title:
+            raise serializers.ValidationError('Offer detail must have a title.')
+        return value
+    
     def create(self, validated_data):
         """Create an order using the specified offer detail's attributes."""
         offer_detail = OfferDetail.objects.get(id=validated_data['offer_detail_id'])
         order = Order.objects.create(
             customer_user=self.context['request'].user,
             business_user=offer_detail.offer.user,
-            title=offer_detail.offer.title,
+            title=offer_detail.title,
             revisions=offer_detail.revisions,
             delivery_time_in_days=offer_detail.delivery_time_in_days,
             price=offer_detail.price,
