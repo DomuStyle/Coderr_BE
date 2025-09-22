@@ -88,8 +88,6 @@ Coderr is a Django-based backend for a Fiverr-like platform, designed to connect
 - **Statistics**:
   - `GET /api/base-info/`: Retrieve platform statistics (e.g., review count, average rating).
 
-See the [Endpoint Documentation](Coderr Endpoint Documentation.txt) for detailed request/response formats and status codes.
-
 ## Testing
 
 The project follows TDD principles with a robust test suite in `reviews_app/tests/` and `profiles_app/tests/`. Tests cover:
@@ -97,7 +95,7 @@ The project follows TDD principles with a robust test suite in `reviews_app/test
 - Unhappy paths: Error cases like invalid data, unauthorized access, and duplicate entries.
 - Run tests with:
   ```bash
-  python manage.py test reviews_app profiles_app
+  python manage.py test
   ```
 
 ## Contributing
