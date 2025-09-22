@@ -9,6 +9,7 @@ from profiles_app.models import Profile
 from offers_app.models import Offer
 from django.db.models import Avg
 
+
 class BaseInfoView(APIView):
     """View for retrieving aggregated statistics like review counts and ratings, accessible publicly."""
     permission_classes = [AllowAny]

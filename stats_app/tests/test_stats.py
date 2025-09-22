@@ -8,6 +8,7 @@ from profiles_app.models import Profile
 from reviews_app.models import Review
 from offers_app.models import Offer
 
+
 class StatsTestsHappy(APITestCase):
     """Test cases for successful (happy path) scenarios in stats APIs."""
 
@@ -54,6 +55,7 @@ class StatsTestsHappy(APITestCase):
             'offer_count': 2
         }
         self.assertEqual(response.data, expected_data)
+
 
 class StatsTestsUnhappy(APITestCase):
     """Test cases for error or edge-case (unhappy path) scenarios in stats APIs."""

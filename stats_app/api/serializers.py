@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 
+
 class BaseInfoSerializer(serializers.Serializer):
     """Serializer for base information including review count, average rating, and other counts."""
     review_count = serializers.IntegerField()
