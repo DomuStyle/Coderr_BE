@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import OfferListView, OfferDetailView, OfferSpecificView
 
+
 # Define URL patterns for offer-related API endpoints.
 urlpatterns = [
     path('offers/', OfferListView.as_view(), name='offer-list'),
