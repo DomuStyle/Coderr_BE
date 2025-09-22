@@ -11,6 +11,7 @@ from orders_app.models import Order
 from profiles_app.models import Profile
 from .serializers import OrderSerializer, OrderCreateSerializer, OrderUpdateSerializer
 
+
 class OrderListView(ListAPIView):
     """View for listing orders and creating new ones for authenticated customers."""
     permission_classes = [IsAuthenticated]
@@ -34,6 +35,7 @@ class OrderListView(ListAPIView):
             data['offer_detail_id'] = serializer.validated_data['offer_detail_id']
             return Response(data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class OrderSpecificView(DestroyAPIView, UpdateAPIView):
     """View for updating or deleting a specific order."""
@@ -70,6 +72,7 @@ class OrderSpecificView(DestroyAPIView, UpdateAPIView):
         order = self.get_object()
         self.perform_destroy(order)
         return Response({'detail': 'Order deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
 
 class OrderCountView(APIView):
     """View for counting in-progress orders for a business user."""

@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import OrderListView, OrderSpecificView, OrderCountView, CompletedOrderCountView
 
+
 # Define URL patterns for order-related API endpoints.
 urlpatterns = [
     path('orders/', OrderListView.as_view(), name='order-list'),

@@ -7,8 +7,7 @@ from rest_framework import status
 from offers_app.models import OfferDetail, Offer
 from orders_app.models import Order
 from profiles_app.models import Profile
-from datetime import datetime
-import pytz
+
 
 class OrderTestsHappy(APITestCase):
     """Test cases for successful (happy path) scenarios in order APIs."""
@@ -144,6 +143,7 @@ class OrderTestsHappy(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['completed_order_count'], 1)
+
 
 class OrderTestsUnhappy(APITestCase):
     """Test cases for error (unhappy path) scenarios in order APIs."""

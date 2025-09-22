@@ -4,6 +4,7 @@ from rest_framework import serializers
 from orders_app.models import Order
 from offers_app.models import OfferDetail
 
+
 class OrderSerializer(serializers.ModelSerializer):
     """Serializes order data for API responses, formatting timestamps in ISO format and prices as strings."""
     created_at = serializers.DateTimeField(format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
@@ -18,6 +19,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'customer_user', 'business_user', 'created_at', 'updated_at']
+
 
 class OrderCreateSerializer(serializers.Serializer):
     """Serializes input data for creating new orders based on an offer detail."""
@@ -47,6 +49,7 @@ class OrderCreateSerializer(serializers.Serializer):
             offer_type=offer_detail.offer_type
         )
         return order
+
 
 class OrderUpdateSerializer(serializers.ModelSerializer):
     """Serializes data for updating an order's status."""
