@@ -1,11 +1,8 @@
 """Test cases for the registration API endpoint in Django REST Framework, covering happy and unhappy paths."""
 
 from django.urls import reverse
-from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
-from rest_framework.authtoken.models import Token
-from user_auth_app.models import UserProfile
 
 
 class UserProfileAPItestCaseHappy(APITestCase):

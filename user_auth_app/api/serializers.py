@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
+
 class RegistrationSerializer(serializers.ModelSerializer):
     """Serializes data for creating new user accounts with profile type."""
     email = serializers.EmailField(required=True)
@@ -47,6 +48,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         validated_data['email'] = validated_data['email'].lower()
         user = User.objects.create_user(**validated_data)
         return user
+
 
 class CustomAuthTokenSerializer(serializers.Serializer):
     """Serializes credentials for user authentication."""

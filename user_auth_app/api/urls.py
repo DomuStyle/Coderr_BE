@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import RegistrationView, CustomLoginView
 
+
 # Define URL patterns for user authentication API endpoints.
 urlpatterns = [
     path('registration/', RegistrationView.as_view(), name='registration'),
