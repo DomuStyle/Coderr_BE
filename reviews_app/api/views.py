@@ -9,6 +9,7 @@ from reviews_app.models import Review
 from .serializers import ReviewSerializer, ReviewCreateSerializer, ReviewUpdateSerializer
 from profiles_app.models import Profile
 
+
 class ReviewListView(ListAPIView):
     """View for listing and creating reviews, with no pagination for simple lists."""
     permission_classes = [IsAuthenticated]
@@ -39,6 +40,7 @@ class ReviewListView(ListAPIView):
             review = serializer.save()
             return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ReviewSpecificView(DestroyAPIView, UpdateAPIView):
     """View for updating or deleting a specific review."""

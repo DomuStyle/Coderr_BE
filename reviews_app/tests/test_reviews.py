@@ -5,8 +5,6 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from profiles_app.models import Profile
 from reviews_app.models import Review
-from datetime import datetime
-import pytz
 import time
 
 
