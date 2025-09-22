@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from profiles_app.models import Profile
 
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializes User model data for profile-related API responses."""
     class Meta:
@@ -12,6 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'username': {'read_only': True}
         }
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     """Serializes Profile model data, including nested user information and image uploads."""
@@ -27,14 +29,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             'created_at'
         ]
         read_only_fields = ['created_at']
-
-    # def to_internal_value(self, data):
-    #     """Handle flat email input by mapping it to nested user data."""
-    #     if 'email' in data:
-    #         user_data = data.get('user', {})
-    #         user_data['email'] = data.pop('email')
-    #         data['user'] = user_data
-    #     return super().to_internal_value(data)
 
     def to_internal_value(self, data):
         """Handle flat email input by mapping it to nested user data."""
@@ -83,6 +77,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 class BusinessProfileSerializer(ProfileSerializer):
     """Serializes business profiles, excluding email and created_at in list views."""
     class Meta(ProfileSerializer.Meta):
@@ -96,6 +91,7 @@ class BusinessProfileSerializer(ProfileSerializer):
         representation.pop('email', None)
         representation.pop('created_at', None)
         return representation
+
 
 class CustomerProfileSerializer(ProfileSerializer):
     """Serializes customer profiles, excluding email and created_at in list views."""

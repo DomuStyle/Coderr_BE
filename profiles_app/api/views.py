@@ -9,6 +9,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from profiles_app.models import Profile
 from .serializers import ProfileSerializer, BusinessProfileSerializer, CustomerProfileSerializer
 
+
 class ProfileDetailView(APIView):
     """View for retrieving and updating a specific profile."""
     permission_classes = [IsAuthenticated]
@@ -38,12 +39,14 @@ class ProfileDetailView(APIView):
         except Profile.DoesNotExist:
             return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 class BusinessProfileListView(ListAPIView):
     """View for listing business profiles."""
     permission_classes = [IsAuthenticated]
     serializer_class = BusinessProfileSerializer
     queryset = Profile.objects.filter(type='business').select_related('user')
     pagination_class = None
+
 
 class CustomerProfileListView(ListAPIView):
     """View for listing customer profiles."""

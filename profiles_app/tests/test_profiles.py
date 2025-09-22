@@ -8,6 +8,7 @@ from profiles_app.models import Profile
 from datetime import datetime
 import pytz
 
+
 class ProfileTestsHappy(APITestCase):
     """Test cases for successful (happy path) scenarios in profile APIs."""
 

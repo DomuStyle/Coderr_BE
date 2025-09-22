@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import ProfileDetailView, BusinessProfileListView, CustomerProfileListView
 
+
 # Define URL patterns for profile-related API endpoints.
 urlpatterns = [
     path('profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
